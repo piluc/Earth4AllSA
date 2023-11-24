@@ -11,15 +11,16 @@ end
 
 function modify(p)
     e4a_prob = e4a_ode_problem()
+    @named e4a = Earth4All.earth4all()
     t = collect(range(1980.0, stop=2100.0, length=2400))
     e4a_prob_modified = remake(e4a_prob; p=p)
     e4a_sol = solve(e4a_prob_modified, Tsit5(); saveat=t)
-    return [mean(e4a_sol[11, :]), mean(e4a_sol[99, :])]
+    return [mean(e4a_sol[e4a.AWBI])]
 end
 
 function upper_lower_bounds(prob)
     y = []
-    push!(y, [prob.p[1], (1 + 0.0000000001) * prob.p[1]])
+    push!(y, [prob.p[1] - 0.5, prob.p[1] + 0.5])
     for i in 2:lastindex(prob.p)
         push!(y, [prob.p[i], prob.p[i]])
     end
@@ -30,8 +31,8 @@ function upper_lower_bounds(prob)
     return y
 end
 
-function execute_gsa(tnt, nt)
+function execute_gsa(tnt, nt, pl)
     e4a_prob = e4a_ode_problem()
     ub_lb = upper_lower_bounds(e4a_prob)
-    return gsa(modify, Morris(total_num_trajectory=tnt, num_trajectory=nt), ub_lb)
+    return gsa(modify, Morris(total_num_trajectory=tnt, num_trajectory=nt, len_design_mat=pl), ub_lb)
 end
