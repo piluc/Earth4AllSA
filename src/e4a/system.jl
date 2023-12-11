@@ -7,7 +7,10 @@ D = Differential(t)
 function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=_ranges)
     ORDER = Int64(params[:ORDER])
 
-    eqs = []
+    # dummy parameter and variable to be used because of bug of GlobalSensitivity.jl
+    @parameters DUMMYP = 1.0 [description = "Dummy parameter to be used as first because of bug of GlobalSensitivity.jl"]
+    @variables DUMMYV(t) = 0.0 [description = "Dummy variable to be used in first equation because of bug of GlobalSensitivity.jl"]
+    eqs = [D(DUMMYV) ~ DUMMYP - log10(10^DUMMYP)]
 
     # climate
     @parameters CCCSt = params[:CCCSt] [description = "Cost of CCS Dollar/tCO2"]
