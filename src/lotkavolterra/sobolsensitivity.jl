@@ -17,9 +17,8 @@ function modify(p_from_gsa)
     @named lk = LotkaVolterra.lotka_volterra()
     t = collect(range(0, stop=10, length=200))
     prob1 = remake(prob; p=p_from_gsa)
-    println(p_from_gsa)
     sol = solve(prob1, Tsit5(); saveat=t)
-    return [sol[lk.U3][1], sol[lk.U3][100], sol[lk.U3][200]]
+    return [sol[lk.U1][100], sol[lk.U2][100]]
 end
 
 function upper_lower_bounds(prob)
@@ -29,13 +28,14 @@ function upper_lower_bounds(prob)
         push!(y, [prob.p[i] - 0.5, prob.p[i] + 0.5])
         # push!(y, [prob.p[i], prob.p[i]])
     end
+    y = [[0.02, 0.044], [0.44, 0.68], [0.0226, 0.0354], [0.71, 1.15]]
     return y
 end
 
-function execute_gsa(tnt, nt, pl)
+function execute_sobol(ns)
     prob = lk_ode_problem()
     ub_lb = upper_lower_bounds(prob)
-    return gsa(modify, Morris(relative_scale=true, total_num_trajectory=tnt, num_trajectory=nt, len_design_mat=pl), ub_lb)
+    return gsa(modify, Sobol(), ub_lb, samples=ns)
 end
 
-# execute_gsa(1000, 150);
+# execute_sobol(10);
