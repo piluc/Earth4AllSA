@@ -1,4 +1,4 @@
-using GlobalSensitivity, Statistics, ModelingToolkit, OrdinaryDiffEq, QuasiMonteCarlo, Plots
+using GlobalSensitivity, Statistics, ModelingToolkit, OrdinaryDiffEq, QuasiMonteCarlo, Plots, Serialization
 
 include("Earth4All.jl")
 
@@ -62,4 +62,7 @@ function execute_sobol(ns)
     return gsa(modify, Sobol(), ub_lb, samples=ns)
 end
 
-# execute_sobol(10);
+# start_time = time()
+# res = execute_sobol(6)
+# println("Sobol executed in ", time() - start_time, " seconds")
+# serialize("sobol.dat", res)
