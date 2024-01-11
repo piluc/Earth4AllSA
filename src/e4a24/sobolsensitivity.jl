@@ -15,7 +15,7 @@ function modify(p_from_gsa)
     t = collect(range(1980.0, stop=2100.0, length=2400))
     e4a_prob_modified = remake(e4a_prob; p=p_from_gsa)
     e4a_sol = solve(e4a_prob_modified, Tsit5(); saveat=t)
-    return [mean(e4a_sol[e4a.AWBI])]
+    return [mean(e4a_sol[e4a.AWBI][end-120:end]), mean(e4a_sol[e4a.AWBI][end-240:end]), mean(e4a_sol[e4a.GDPP][end-120:end]), mean(e4a_sol[e4a.GDPP][end-240:end]), mean(e4a_sol[e4a.INEQ][end-120:end]), mean(e4a_sol[e4a.INEQ][end-240:end]), mean(e4a_sol[e4a.OW][end-120:end]), mean(e4a_sol[e4a.OW][end-240:end]), mean(e4a_sol[e4a.POP][end-120:end]), mean(e4a_sol[e4a.POP][end-240:end]), mean(e4a_sol[e4a.STE][end-120:end]), mean(e4a_sol[e4a.STE][end-240:end])]
 end
 
 function upper_lower_bounds(prob)
