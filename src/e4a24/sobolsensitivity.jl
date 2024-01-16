@@ -1,4 +1,4 @@
-using GlobalSensitivity, Statistics, ModelingToolkit, OrdinaryDiffEq, QuasiMonteCarlo, Plots, Serialization
+using GlobalSensitivity, Statistics, ModelingToolkit, OrdinaryDiffEq, QuasiMonteCarlo, PlotlyJS, Serialization
 
 include("Earth4All.jl")
 
@@ -60,6 +60,20 @@ function execute_sobol(ns)
     prob = e4a_ode_problem()
     ub_lb = upper_lower_bounds(prob)
     return gsa(modify, Sobol(), ub_lb, samples=ns)
+end
+
+function bar_plots(res)
+    @named e4a = Earth4All.earth4all()
+    fp = "/Users/piluc/Downloads/sobol/plots/"
+    mkpath(fp)
+    v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
+    a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
+    for i in 1:lastindex(v)
+        p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i-1, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i-1, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
+        savefig(p, fp * a[i] * "_06.html")
+        p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
+        savefig(p, fp * a[i] * "_12.html")
+    end
 end
 
 # start_time = time()
