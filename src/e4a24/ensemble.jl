@@ -3,43 +3,30 @@ include("Earth4All.jl")
 using ModelingToolkit
 using DifferentialEquations
 using Plots
+using Serialization
 using Statistics
 
-global p1 = 3
-global p2 = 9
-global p3 = 11
-global p4 = 13
+global p = [3, 9, 11, 13, 14, 19, 20, 21, 22]
+global δ = [8.0, 0.02, 0.7, 0.5, 0.5, 0.01, 0.01, 0.2, 0.005]
 global α_values = [0.0, 0.5, 1, 1.5, 2.0]
-global α1 = 1
-global α2 = 1
-global α3 = 1
-global α4 = 0
+global α = [1, 1, 1, 1, 1, 1, 1, 1, 0]
+
 
 function modify_pars(x)
-    global α1, α2, α3, α4
-    # println(α1, α2, α3, α4)
-    if (α4 == 5)
-        α4 = 1
-        if (α3 == 5)
-            α3 = 1
-            if (α2 == 5)
-                α2 = 1
-                α1 = α1 + 1
-            else
-                α2 = α2 + 1
-            end
-        else
-            α3 = α3 + 1
-        end
-    else
-        α4 = α4 + 1
+    i = length(α)
+    while (α[i] == length(α_values))
+        α[i] = 1
+        i = i - 1
     end
+    if (i == 1)
+        println("Finished α[1]=", α[i])
+    end
+    α[i] = α[i] + 1
     y = copy(x)
-    y[p1] += 8.0 * α_values[α1]
-    y[p2] += 0.02 * α_values[α2]
-    y[p3] += 0.7 * α_values[α3]
-    y[p4] += 0.5 * α_values[α4]
-    # # First group
+    for i in 1:lastindex(p)
+        y[p[i]] += δ[i] * α_values[α[i]]
+    end
+    # First group
     # y[4] = 0.1
     # y[19] = 0.01
     # y[20] = 0.01
@@ -92,7 +79,7 @@ function ensemble(nt)
     # errlb_s = avg_s - min_s
     # errub_s = max_s - avg_s
     # plot(avg_s; ribbon=(errlb_s, errub_s))
-    return sol
+    serialize("sols/sol_5_9.dat", sol)
 end
 
 # ensemble(10)
