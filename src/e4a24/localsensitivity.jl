@@ -6,6 +6,79 @@ using Plots
 using Serialization
 using Statistics
 
+function find_index(α)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    α_values = [0.0, 0.33, 0.66, 1, 1.33, 1.66, 2.0]
+    α_values = [0.0, 0.5, 1, 1.5, 2.0]
+    index = 0
+    for α1 in 1:lastindex(α_values)
+        for α2 in 1:lastindex(α_values)
+            for α3 in 1:lastindex(α_values)
+                for α4 in 1:lastindex(α_values)
+                    for α5 in 1:lastindex(α_values)
+                        for α6 in 1:lastindex(α_values)
+                            for α7 in 1:lastindex(α_values)
+                                index = index + 1
+                                if ([α1, α2, α3, α4, α5, α6, α7] == α)
+                                    return index
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function find_alpha(i)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    α_values = [0.0, 0.33, 0.66, 1, 1.33, 1.66, 2.0]
+    α_values = [0.0, 0.5, 1, 1.5, 2.0]
+    index = 0
+    for α1 in 1:lastindex(α_values)
+        for α2 in 1:lastindex(α_values)
+            for α3 in 1:lastindex(α_values)
+                for α4 in 1:lastindex(α_values)
+                    for α5 in 1:lastindex(α_values)
+                        for α6 in 1:lastindex(α_values)
+                            for α7 in 1:lastindex(α_values)
+                                index = index + 1
+                                if (index == i)
+                                    return [α_values[α1], α_values[α2], α_values[α3], α_values[α4], α_values[α5], α_values[α6], α_values[α7]]
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function compute_gl_sol()
+    @named e4a = Earth4All.earth4all()
+    e4a_sys = structural_simplify(e4a)
+    prob = ODEProblem(e4a_sys, [], (1980, 2100))
+    gl_p = default_gl_pars(prob.p)
+    prob = remake(prob, p=gl_p)
+    gl_sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    return e4a, gl_sol
+end
+
+function find_dominators(e4a, gl_sol, sol_array)
+    li = lastindex(gl_sol.t)
+    f = open("sols/dom_5_7.txt", "w")
+    for s in 1:lastindex(sol_array)
+        if (sol_array[s][1] >= gl_sol[e4a.AWBI][li] && sol_array[s][2] >= gl_sol[e4a.GDPP][li] && sol_array[s][3] <= gl_sol[e4a.INEQ][li] && sol_array[s][4] <= gl_sol[e4a.OW][li] && sol_array[s][5] >= gl_sol[e4a.POP][li] && sol_array[s][6] <= gl_sol[e4a.STE][li])
+            α = find_alpha(s)
+            println(find_alpha(s))
+            write(f, string(α) * "\n")
+        end
+    end
+    close(f)
+end
+
 function default_gl_pars(x)
     y = copy(x)
     # First group
@@ -166,6 +239,7 @@ end
 
 function local_sensitivity(p1, p2, p3, p4, p5, p6, p7)
     α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    α_values = [0.0, 0.5, 1, 1.5, 2.0]
     α_values = [0.0, 0.33, 0.66, 1, 1.33, 1.66, 2.0]
     @named e4a = Earth4All.earth4all()
     e4a_sys = structural_simplify(e4a)
@@ -215,4 +289,4 @@ function local_sensitivity(p1, p2, p3, p4, p5, p6, p7)
     serialize("sols/sol_7_7.dat", sol)
 end
 
-local_sensitivity(3, 9, 11, 19, 20, 21, 22)
+# local_sensitivity(3, 9, 11, 19, 20, 21, 22)
