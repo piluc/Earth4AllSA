@@ -164,9 +164,9 @@ function local_sensitivity_tltl_all()
     return tltl_sol, sol, perc
 end
 
-function local_sensitivity(p1, p2, p3, p4)
+function local_sensitivity(p1, p2, p3, p4, p5, p6, p7)
     α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-    α_values = [0.0, 0.5, 1, 1.5, 2.0]
+    α_values = [0.0, 0.33, 0.66, 1, 1.33, 1.66, 2.0]
     @named e4a = Earth4All.earth4all()
     e4a_sys = structural_simplify(e4a)
     prob = ODEProblem(e4a_sys, [], (1980, 2100))
@@ -177,25 +177,42 @@ function local_sensitivity(p1, p2, p3, p4)
     sol = []
     δ = gl_p - tltl_p
     for α1 in 1:lastindex(α_values)
-        println(α1)
         for α2 in 1:lastindex(α_values)
             for α3 in 1:lastindex(α_values)
                 for α4 in 1:lastindex(α_values)
-                    tltl_p = default_tltl_pars(prob.p)
-                    tltl_p[p1] = tltl_p[p1] + δ[p1] * α_values[α1]
-                    tltl_p[p2] = tltl_p[p2] + δ[p2] * α_values[α2]
-                    tltl_p[p3] = tltl_p[p3] + δ[p3] * α_values[α3]
-                    tltl_p[p4] = tltl_p[p4] + δ[p4] * α_values[α4]
-                    prob = remake(prob, p=tltl_p)
-                    sol_α = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-                    li = lastindex(sol_α.t)
-                    sol_v = [sol_α[e4a.AWBI][li], sol_α[e4a.GDPP][li], sol_α[e4a.INEQ][li], sol_α[e4a.OW][li], sol_α[e4a.POP][li], sol_α[e4a.STE][li]]
-                    push!(sol, sol_v)
+                    for α5 in 1:lastindex(α_values)
+                        for α6 in 1:lastindex(α_values)
+                            for α7 in 1:lastindex(α_values)
+                                # for α8 in 1:lastindex(α_values)
+                                #     for α9 in 1:lastindex(α_values)
+                                st = time()
+                                print(α1, α2, α3, α4, α5, α6, α7)
+                                tltl_p = default_tltl_pars(prob.p)
+                                tltl_p[p1] = tltl_p[p1] + δ[p1] * α_values[α1]
+                                tltl_p[p2] = tltl_p[p2] + δ[p2] * α_values[α2]
+                                tltl_p[p3] = tltl_p[p3] + δ[p3] * α_values[α3]
+                                tltl_p[p4] = tltl_p[p4] + δ[p4] * α_values[α4]
+                                tltl_p[p5] = tltl_p[p5] + δ[p5] * α_values[α5]
+                                tltl_p[p6] = tltl_p[p6] + δ[p6] * α_values[α6]
+                                tltl_p[p7] = tltl_p[p7] + δ[p7] * α_values[α7]
+                                # tltl_p[p8] = tltl_p[p8] + δ[p8] * α_values[α8]
+                                # tltl_p[p9] = tltl_p[p9] + δ[p9] * α_values[α9]
+                                prob = remake(prob, p=tltl_p)
+                                sol_α = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+                                li = lastindex(sol_α.t)
+                                sol_v = [sol_α[e4a.AWBI][li], sol_α[e4a.GDPP][li], sol_α[e4a.INEQ][li], sol_α[e4a.OW][li], sol_α[e4a.POP][li], sol_α[e4a.STE][li]]
+                                push!(sol, sol_v)
+                                println(": ", time() - st, " seconds")
+                                #     end
+                                # end
+                            end
+                        end
+                    end
                 end
             end
         end
     end
-    return sol
+    serialize("sols/sol_7_7.dat", sol)
 end
 
-# local_sensitivity(1)
+local_sensitivity(3, 9, 11, 19, 20, 21, 22)

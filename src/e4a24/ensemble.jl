@@ -1,5 +1,6 @@
 include("Earth4All.jl")
 
+using Dates
 using ModelingToolkit
 using DifferentialEquations
 using Plots
@@ -19,7 +20,7 @@ function modify_pars(x)
         i = i - 1
     end
     if (i == 1)
-        println("Finished α[1]=", α[i])
+        println("Finished α[1]=", α[i], " at time ", string(Dates.Time(Dates.now())))
     end
     α[i] = α[i] + 1
     y = copy(x)
