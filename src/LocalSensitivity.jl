@@ -99,134 +99,11 @@ function compute_alpha_sol(prob, α, p)
     gl_p = default_gl_pars(prob.p)
     δ = gl_p - tltl_p
     for i in 1:lastindex(p)
-        tltl_p[p[i]] = tltl_p[p[i]] + δ[i] * α[i]
+        tltl_p[p[i]] = tltl_p[p[i]] + δ[p[i]] * α[i]
     end
     prob = remake(prob, p=tltl_p)
     sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
     return sol
-end
-
-function local_sensitivity_gl()
-    @named e4a = Earth4All.earth4all()
-    e4a_sys = structural_simplify(e4a)
-    prob = ODEProblem(e4a_sys, [], (1980, 2100))
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=gl_p)
-    gl_sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    perc = []
-    for p in 1:lastindex(gl_p)
-        println("Computing percentages for parameter ", p)
-        δ = gl_p[p] - tltl_p[p]
-        sol = []
-        for α in [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-            gl_p = default_gl_pars(prob.p)
-            gl_p[p] = gl_p[p] + δ * α
-            prob = remake(prob, p=gl_p)
-            push!(sol, solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-        end
-        perc_p = []
-        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-            perc_v = []
-            for i in 1:lastindex(sol)
-                push!(perc_v, (sol[i][v][lastindex(sol[1][v])] - gl_sol[v][lastindex(sol[1][v])]) / gl_sol[v][lastindex(sol[1][v])])
-            end
-            push!(perc_p, perc_v)
-        end
-        push!(perc, perc_p)
-    end
-    return gl_sol, sol, perc
-end
-
-function local_sensitivity_tltl()
-    @named e4a = Earth4All.earth4all()
-    e4a_sys = structural_simplify(e4a)
-    prob = ODEProblem(e4a_sys, [], (1980, 2100))
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=tltl_p)
-    tltl_sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    perc = []
-    for p in 1:lastindex(gl_p)
-        println("Computing percentages for parameter ", p)
-        δ = gl_p[p] - tltl_p[p]
-        sol = []
-        for α in [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-            tltl_p = default_tltl_pars(prob.p)
-            tltl_p[p] = tltl_p[p] + δ * α
-            prob = remake(prob, p=tltl_p)
-            push!(sol, solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-        end
-        perc_p = []
-        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-            perc_v = []
-            for i in 1:lastindex(sol)
-                push!(perc_v, (sol[i][v][lastindex(sol[1][v])] - tltl_sol[v][lastindex(sol[1][v])]) / tltl_sol[v][lastindex(sol[1][v])])
-            end
-            push!(perc_p, perc_v)
-        end
-        push!(perc, perc_p)
-    end
-    return tltl_sol, sol, perc
-end
-
-function local_sensitivity_tltl_all()
-    @named e4a = Earth4All.earth4all()
-    e4a_sys = structural_simplify(e4a)
-    prob = ODEProblem(e4a_sys, [], (1980, 2100))
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=tltl_p)
-    tltl_sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    δ = gl_p - tltl_p
-    sol = []
-    for α in [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-        println("Computing percentages for alpha=", α)
-        tltl_p = default_tltl_pars(prob.p)
-        tltl_p = tltl_p + δ * α
-        prob = remake(prob, p=tltl_p)
-        push!(sol, solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-    end
-    perc = []
-    for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-        perc_v = []
-        for i in 1:lastindex(sol)
-            push!(perc_v, (sol[i][v][lastindex(sol[1][v])] - tltl_sol[v][lastindex(sol[1][v])]) / tltl_sol[v][lastindex(sol[1][v])])
-        end
-        push!(perc, perc_v)
-    end
-    return tltl_sol, sol, perc
-end
-
-function local_sensitivity_tltl_one(p)
-    println("Analysing parameter ", p_desc[p])
-    println("Computing ODE problem")
-    e4a, _, prob = e4a_sys_prob()
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=tltl_p)
-    println("Solving TLTL scenario")
-    tltl_sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    δ = gl_p - tltl_p
-    sol = []
-    for α in [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-        println("Computing solution for alpha=", α)
-        tltl_p = default_tltl_pars(prob.p)
-        tltl_p[p] = tltl_p[p] + δ[p] * α
-        prob = remake(prob, p=tltl_p)
-        push!(sol, solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-    end
-    li = lastindex(tltl_sol.t)
-    perc = []
-    for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-        println("Computing percentages for variable ", v)
-        perc_v = []
-        for i in 1:lastindex(sol)
-            push!(perc_v, (sol[i][v][li] - tltl_sol[v][li]) / tltl_sol[v][li])
-        end
-        push!(perc, perc_v)
-    end
-    return sol, perc
 end
 
 function compute_all_sols(α_values, p)
@@ -269,12 +146,16 @@ function compute_all_sols(n, α, i, α_values, δ, prob, e4a, p, sol_array)
 end
 
 function find_dominators(sol_fn, dom_fn, α_values, np)
-    _, _, prob = e4a_sys_prob()
-    e4a, gl_sol = compute_gl_sol(prob)
+    println("Computing ODE system and giant leap solution")
+    e4a, _, prob = e4a_sys_prob()
+    gl_sol = compute_gl_sol(prob)
+    println("Reading solutions")
     sol_array = deserialize(sol_fn)
+    println("Looking for dominators")
     f = open(dom_fn, "w")
     find_dominators(e4a, gl_sol, sol_array, f, α_values, np)
     close(f)
+    println("Finished")
 end
 
 function find_dominators(e4a, gl_sol, sol_array, f, α_values, np)
@@ -285,8 +166,11 @@ end
 function find_dominators(n, α, i, r, e4a, gl_sol, sol_array, f, α_values)
     if (i == length(α))
         r = r + 1
+        if (r % 1000 == 0)
+            println(r, " solutions have been analyzed")
+        end
         li = lastindex(gl_sol.t)
-        if (sol_array[r][1] >= gl_sol[e4a.AWBI][li] && sol_array[r][2] >= gl_sol[e4a.GDPP][li] && sol_array[r][3] <= gl_sol[e4a.INEQ][li] && sol_array[r][4] <= gl_sol[e4a.OW][li] && sol_array[r][5] >= gl_sol[e4a.POP][li] && sol_array[r][6] <= gl_sol[e4a.STE][li])
+        if (sol_array[r][1] >= gl_sol[e4a.AWBI][li] && sol_array[r][2] >= gl_sol[e4a.GDPP][li] && sol_array[r][3] <= gl_sol[e4a.INEQ][li] && sol_array[r][4] <= gl_sol[e4a.OW][li] && sol_array[r][6] <= gl_sol[e4a.STE][li]) # && sol_array[r][5] >= gl_sol[e4a.POP][li])
             p = fill(0.0, length(α))
             for j in 1:lastindex(p)
                 p[j] = α_values[α[j]]
@@ -303,6 +187,26 @@ function find_dominators(n, α, i, r, e4a, gl_sol, sol_array, f, α_values)
     return r
 end
 
+function find_dominator_indices(sol_fn)
+    println("Computing ODE system and giant leap solution")
+    e4a, _, prob = e4a_sys_prob()
+    gl_sol = compute_gl_sol(prob)
+    println("Reading solutions")
+    sol_array = deserialize(sol_fn)
+    println("Looking for dominators")
+    di = []
+    li = lastindex(gl_sol.t)
+    for s in 1:lastindex(sol_array)
+        sol = sol_array[s]
+        if (sol[1] >= gl_sol[e4a.AWBI][li] && sol[2] >= gl_sol[e4a.GDPP][li] && sol[3] <= gl_sol[e4a.INEQ][li] && sol[4] <= gl_sol[e4a.OW][li] && sol[6] <= gl_sol[e4a.STE][li]) # && sol_array[r][5] >= gl_sol[e4a.POP][li])
+            println(s)
+            push!(di, s)
+        end
+    end
+    println("Finished")
+    return di
+end
+
 function plot_two_sols(scen1, sol1, scen2, sol2, vars)
     x = range(1, 7681, length=7681)
     traces = GenericTrace[]
@@ -314,4 +218,57 @@ function plot_two_sols(scen1, sol1, scen2, sol2, vars)
         push!(traces, trace2)
     end
     return PlotlyJS.plot(traces, Layout(title="GL versus dominator"))
+end
+
+function find_α(index, nα, np)
+    α_values = [0.0, 0.5, 1, 1.5, 2.0]
+    α = fill(0, np)
+    α, _ = find_α(nα, α, 0, index, 0)
+    p = fill(0.0, np)
+    for i in 1:np
+        p[i] = α_values[α[i]]
+    end
+    return p
+end
+
+function find_α(n, α, i, index, r)
+    if (i == length(α))
+        r = r + 1
+        return α, r
+    end
+    β = fill(-1, length(α))
+    for a in 1:n
+        α[i+1] = a
+        β, r = find_α(n, α, i + 1, index, r)
+        if (r == index)
+            break
+        end
+    end
+    return β, r
+end
+
+
+function find_index(β, nα, np)
+    α = fill(0, np)
+    return find_index(nα, α, 0, β, 0)
+end
+
+function find_index(n, α, i, β, index)
+    if (i == length(α))
+        index = index + 1
+        if (α == β)
+            return index, true
+        else
+            return index, false
+        end
+    end
+    f = false
+    for a in 1:n
+        α[i+1] = a
+        index, f = find_index(n, α, i + 1, β, index)
+        if (f)
+            break
+        end
+    end
+    return index, f
 end
