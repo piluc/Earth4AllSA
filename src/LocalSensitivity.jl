@@ -94,12 +94,15 @@ function compute_tltl_sol(prob)
     return sol
 end
 
-function compute_alpha_sol(prob, α, p)
+function compute_alpha_sol(prob, fixed_p, α, p)
     tltl_p = default_tltl_pars(prob.p)
     gl_p = default_gl_pars(prob.p)
     δ = gl_p - tltl_p
     for i in 1:lastindex(p)
         tltl_p[p[i]] = tltl_p[p[i]] + δ[p[i]] * α[i]
+    end
+    for i in 1:lastindex(fixed_p)
+        tltl_p[fixed_p[i][1]] = fixed_p[i][2]
     end
     prob = remake(prob, p=tltl_p)
     sol = solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
@@ -247,7 +250,6 @@ function find_α(n, α, i, index, r)
     return β, r
 end
 
-
 function find_index(β, nα, np)
     α = fill(0, np)
     return find_index(nα, α, 0, β, 0)
@@ -271,4 +273,37 @@ function find_index(n, α, i, β, index)
         end
     end
     return index, f
+end
+
+function read_alphas(α_fn)
+    f = open(α_fn, "r")
+    lines = readlines(f)
+    close(f)
+    return lines
+end
+
+function find_dominators_from_files(sol_fn, α_fn, doms_fn)
+    println("Computing ODE system and giant leap solution")
+    e4a, _, prob = e4a_sys_prob()
+    gl_sol = compute_gl_sol(prob)
+    println("Reading solutions")
+    sol_array = deserialize(sol_fn)
+    find_dominators_from_files(e4a, gl_sol, sol_array, α_fn, doms_fn)
+end
+
+function find_dominators_from_files(e4a, gl_sol, sol_array, α_fn, doms_fn)
+    println("Reading α combinations")
+    α_array = read_alphas(α_fn)
+    println("Looking for dominators")
+    li = lastindex(gl_sol.t)
+    vv = [gl_sol[e4a.AWBI][li], gl_sol[e4a.GDPP][li], gl_sol[e4a.INEQ][li], gl_sol[e4a.OW][li], gl_sol[e4a.POP][li], gl_sol[e4a.STE][li]]
+    f = open(doms_fn, "w")
+    for r in 1:lastindex(sol_array)
+        if (sol_array[r][2][1] >= vv[1] && sol_array[r][2][2] >= vv[2] && sol_array[r][2][3] <= vv[3] && sol_array[r][2][4] <= vv[4] && sol_array[r][2][6] <= vv[6]) # && sol_array[r][2][5] >= vv[5])
+            println(α_array[r])
+            write(f, α_array[r] * "\n")
+        end
+    end
+    close(f)
+    println("Finished")
 end

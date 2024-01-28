@@ -24,6 +24,8 @@ docs/site/
 Manifest.toml
 
 .DS_Store
+alphas/
+alphavalues/
 doms/
 sols/
 plots/
