@@ -26,5 +26,8 @@ Manifest.toml
 .DS_Store
 alphas/
 alphavalues/
+apxs/
+doms/
 plots/
 oldsrc/
+sols/
