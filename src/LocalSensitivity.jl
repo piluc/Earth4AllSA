@@ -1,5 +1,7 @@
 include("Earth4All.jl")
 
+using ColorTypes
+using ColorSchemes
 using ModelingToolkit
 using DifferentialEquations
 using PlotlyJS
@@ -15,8 +17,8 @@ global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Ex
 function _variables(e4a)
     variables = [
         (e4a.POP, 0, 10000, "Population"),
-        (e4a.AWBI, 0, 2.4, "Average wellbeing"),
-        (e4a.GDPP, 0, 60, "GDP per person"),
+        (e4a.AWBI, 0, 5.0, "Average wellbeing"),
+        (e4a.GDPP, 0, 65, "GDP per person"),
         (e4a.STE, 0, 2, "Social tension"),
         (e4a.INEQ, 0, 1.6, "Inequality"),
         (e4a.OW, 0, 4, "Global warming"),]
@@ -292,9 +294,184 @@ function plot_two_sols(scen1, sol1, scen2, sol2, vars)
     return PlotlyJS.plot(traces, Layout(title="GL versus dominator"))
 end
 
-function plot_sol(e4a, _sol, _title, sa, sl; kwargs...)
+function plot_variables(solution, xrange, variables::Vector{<:NTuple{4,Any}}; title="", showaxis=true, showlegend=true, linetype="lines", colored=true, save=false)
+    numvars = length(variables)
+
+    @assert 1 ≤ numvars
+    @assert (1 == length(xrange)) || (3 == length(xrange))
+    @assert 4 == length(variables[1])
+
+
+    colors = colored ? ColorSchemes.tab10.colors : fill(RGB(0.2, 0.2, 0.2), numvars)
+
+    x_offset = 0.05
+    x_domain = showaxis ? x_offset * numvars - 0.04 : 0.0
+
+
+    traces = GenericTrace[]
+
+    (xvalue, xmin, xmax) = (3 == length(xrange)) ? xrange : (xrange[1], -Inf, Inf)
+    (var, varmin, varmax, varname) = variables[1]
+
+    layout = Dict([
+        ("title", attr(text=title, x=0.5)),
+        ("showlegend", showlegend),
+        ("plot_bgcolor", "#EEE"),
+        ("xaxis", attr(
+            domain=[x_domain + 0.02, 1.0],
+            position=0.0,
+            range=[xmin, xmax])),
+        ("yaxis", attr(
+            color=colors[1],
+            visible=showaxis,
+            name="",
+            position=0.0,
+            showgrid=false,
+            range=[varmin, varmax],
+            domain=[0.05, 1.0],
+        ))
+    ])
+
+    push!(traces, scatter(
+        x=solution[xvalue],
+        y=solution[var],
+        marker_color=colors[1],
+        name=varname,
+        mode=linetype, yaxis="y1"),
+    )
+
+
+    for i ∈ 2:numvars
+        (var, varmin, varmax, varname) = variables[i]
+
+        layout[string("yaxis", i)] = attr(
+            color=colors[i],
+            overlaying="y",
+            visible=showaxis,
+            name="",
+            position=(i - 1) * x_offset,
+            showgrid=false,
+            range=[varmin, varmax],
+        )
+
+        push!(traces, scatter(
+            x=solution[xvalue],
+            y=solution[var],
+            marker_color=colors[i],
+            name=varname,
+            mode=linetype,
+            yaxis=string("y", i)),
+        )
+    end
+
+    p = plot(traces, Layout(layout))
+    save && savefig(p, "./" * title * ".svg")
+
+    return p
+end
+
+function plot_two_sol_variables(scen1, sol1, scen2, sol2, xrange, variables::Vector{<:NTuple{4,Any}}; title="", showaxis=true, showlegend=true, linetype="lines", colored=true, save=false)
+    numvars = length(variables)
+
+    @assert 1 ≤ numvars
+    @assert (1 == length(xrange)) || (3 == length(xrange))
+    @assert 4 == length(variables[1])
+
+
+    colors = colored ? ColorSchemes.tab10.colors : fill(RGB(0.2, 0.2, 0.2), numvars)
+
+    x_offset = 0.05
+    x_domain = showaxis ? x_offset * numvars - 0.04 : 0.0
+
+
+    traces = GenericTrace[]
+
+    (xvalue, xmin, xmax) = (3 == length(xrange)) ? xrange : (xrange[1], -Inf, Inf)
+    (var, varmin, varmax, varname) = variables[1]
+
+    layout = Dict([
+        ("title", attr(text=title, x=0.5)),
+        ("showlegend", showlegend),
+        ("plot_bgcolor", "#EEE"),
+        ("xaxis", attr(
+            domain=[x_domain + 0.02, 1.0],
+            position=0.0,
+            range=[xmin, xmax])),
+        ("yaxis", attr(
+            color=colors[1],
+            visible=showaxis,
+            name="",
+            position=0.0,
+            showgrid=false,
+            range=[varmin, varmax],
+            domain=[0.05, 1.0],
+        ))
+    ])
+
+    push!(traces, scatter(
+        x=sol1[xvalue],
+        y=sol1[var],
+        marker_color=colors[1],
+        name=varname * " (" * scen1 * ")",
+        mode=linetype, yaxis="y1"),
+    )
+
+    push!(traces, scatter(
+        x=sol2[xvalue],
+        y=sol2[var],
+        marker_color=colors[1],
+        name=varname * " (" * scen2 * ")",
+        mode=linetype, yaxis="y1",
+        line=attr(dash="dash"))
+    )
+
+    for i ∈ 2:numvars
+        (var, varmin, varmax, varname) = variables[i]
+
+        layout[string("yaxis", i)] = attr(
+            color=colors[i],
+            overlaying="y",
+            visible=showaxis,
+            name="",
+            position=(i - 1) * x_offset,
+            showgrid=false,
+            range=[varmin, varmax],
+        )
+
+        push!(traces, scatter(
+            x=sol1[xvalue],
+            y=sol1[var],
+            marker_color=colors[i],
+            name=varname * " (" * scen1 * ")",
+            mode=linetype,
+            yaxis=string("y", i)),
+        )
+
+        push!(traces, scatter(
+            x=sol2[xvalue],
+            y=sol2[var],
+            marker_color=colors[i],
+            name=varname * " (" * scen2 * ")",
+            mode=linetype,
+            yaxis=string("y", i),
+            line=attr(dash="dash"))
+        )
+    end
+
+    p = plot(traces, Layout(layout))
+    save && savefig(p, "./" * title * ".svg")
+
+    return p
+end
+
+function plot_sol_var(e4a, _sol, var_ind, _title, sa, sl; kwargs...)
     @variables t
-    return WorldDynamics.plotvariables(_sol, (t, 1980, 2100), _variables(e4a); title=_title, showaxis=sa, showlegend=sl, kwargs...)
+    return plot_variables(_sol, (t, 1980, 2100), getindex(_variables(e4a), var_ind); title=_title, showaxis=sa, showlegend=sl, kwargs...)
+end
+
+function plot_two_sol_var(e4a, _scen1, _sol1, _scen2, _sol2, var_ind, _title, sa, sl; kwargs...)
+    @variables t
+    return plot_two_sol_variables(_scen1, _sol1, _scen2, _sol2, (t, 1980, 2100), getindex(_variables(e4a), var_ind); title=_title, showaxis=sa, showlegend=sl, kwargs...)
 end
 
 function find_α(index, nα, np)

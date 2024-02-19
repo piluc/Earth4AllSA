@@ -695,11 +695,14 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     DNCM = params[:DNCM]
     EIP = params[:EIP]
     EIPF = params[:EIPF]
+    EPA22 = params[:EPA22]
     FADFS = params[:FADFS]
     FP = params[:FP]
     FW = params[:FW]
+    GDPP1980 = params[:GDPP1980]
     @parameters GEFR = params[:GEFR] [description = "Goal for Extra Fertility Reduction"]
     GEPA = params[:GEPA]
+    LE1980 = params[:LE1980]
     LEA = params[:LEA]
     LEEPA = params[:LEEPA]
     LEG = params[:LEG]
@@ -708,6 +711,7 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     MLEM = params[:MLEM]
     OW2022 = params[:OW2022]
     OWELE = params[:OWELE]
+    PA1980 = params[:PA1980]
     SSP2FA2022F = params[:SSP2FA2022F]
     TAHI = params[:TAHI]
 
@@ -844,10 +848,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     INITNHW = params[:INITNHW]
     INITWSO = params[:INITWSO]
     INITWF = params[:INITWF]
-    INITEGDPP = params[:INITEGDPP]
-    INITEPA = params[:INITEPA]
-    INITLE = params[:INITLE]
-    INITPA = params[:INITPA]
     INITSTE = params[:INITSTE]
     INITSOTR = params[:INITSOTR]
 
@@ -1298,19 +1298,19 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, DEATHR ~ DEATHS / POP)
     delay_n!(eqs, PASS60, RT_DEATHS, LV_DEATHS, LE60, ORDER)
     add_equation!(eqs, DEATHS ~ RT_DEATHS[ORDER])
-    add_equation!(eqs, DNC ~ ((DNCM + (DNC80 - DNCM) * exp(-DNCG * (EGDPP - INITEGDPP))) * (1 + DNCA * (EGDPP - INITEGDPP))) * (1 - EFR) * FM)
+    add_equation!(eqs, DNC ~ ((DNCM + (DNC80 - DNCM) * exp(-DNCG * (EGDPP - GDPP1980))) * (1 + DNCA * (EGDPP - GDPP1980))) * (1 - EFR) * FM)
     add_equation!(eqs, DR ~ (A0020 + A60PL) / (A2040 + A4060))
     add_equation!(eqs, EFR ~ ramp(t, GEFR / IPP, 2022, 2022 + IPP))
-    add_equation!(eqs, EPA ~ ramp(t, (GEPA - INITEPA) / IPP, 2022, 22022 + IPP))
+    add_equation!(eqs, EPA ~ ramp(t, (GEPA - EPA22) / IPP, 2022, 2022 + IPP))
     add_equation!(eqs, D(EGDPP) ~ (GDPP - EGDPP) / TAHI)
     add_equation!(eqs, FM ~ IfElse.ifelse(SSP2FA2022F > 0, IfElse.ifelse(t > 2022, 1 + ramp(t, (MFM - 1) / 78, 2022, 2100), 1), 1))
     add_equation!(eqs, GDPP ~ GDP / POP)
-    add_equation!(eqs, LE ~ ((LEMAX - (LEMAX - INITLE) * exp(-LEG * (EGDPP - INITEGDPP))) * (1 + LEA * (EGDPP - INITEGDPP))) * WELE * LEM)
+    add_equation!(eqs, LE ~ ((LEMAX - (LEMAX - LE1980) * exp(-LEG * (EGDPP - GDPP1980))) * (1 + LEA * (EGDPP - GDPP1980))) * WELE * LEM)
     add_equation!(eqs, LE60 ~ LE - 60)
     add_equation!(eqs, LEM ~ IfElse.ifelse(SSP2FA2022F > 0, IfElse.ifelse(t > 2022, 1 + ramp(t, (MLEM - 1) / 78, 2022, 2100), 1), 1))
     add_equation!(eqs, OF ~ DNC * FADFS)
     add_equation!(eqs, OP ~ A60PL * (LE - PA) / (LE - 60))
-    add_equation!(eqs, PA ~ IfElse.ifelse(LE < INITLE, INITPA, INITPA + LEEPA * (LE + EPA - INITLE)))
+    add_equation!(eqs, PA ~ IfElse.ifelse(LE < LE1980, PA1980, PA1980 + LEEPA * (LE + EPA - LE1980)))
     delay_n!(eqs, BIRTHS, RT_PASS20, LV_PASS20, 20, ORDER)
     add_equation!(eqs, PASS20 ~ RT_PASS20[ORDER])
     delay_n!(eqs, PASS20, RT_PASS40, LV_PASS40, 20, ORDER)
