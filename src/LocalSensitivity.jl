@@ -42,7 +42,7 @@ function default_gl_pars(x)
     y[5] = 0.02
     y[7] = 0.02
     # Fourth group
-    y[18] = 0.02
+    y[18] = 0.0
     y[15] = 0.2
     y[17] = 0.5
     y[16] = 0.5
