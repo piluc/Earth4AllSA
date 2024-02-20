@@ -10,9 +10,9 @@ using Statistics
 using WorldDynamics
 
 global p_name = ["ERDN2OKF2022", "ERDCH4KC2022", "DACCO22100", "FGDC2022", "EETF2022", "EGTRF2022", "EPTF2022", "ETGBW", "GEIC", "FETPO", "GFCO2SCCS", "EROCEPA2022", "GFNE", "GREF", "GCWR", "GFNRM", "GFRA", "EROCFSP", "USPIS2022", "USPUS2022", "GEFR", "MIROTA2022"]
+global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Direct Air Capture of CO2 in 2100 GtCO2/y", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra Transfer of Govmnt Budget to Workers", "Goal for Extra Income from Commons (share of NI)", "Fraction of Extra Taxes Paid by Owners", "Goal for fraction of CO2-sources with CCS", "Extra ROC in energy productivity after 2022 1/y", "Goal for fraction new electrification", "Goal for renewable el fraction", "Goal for Crop Waste Reduction", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Extra ROC in Food Sector Productivity from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)", "Goal for Extra Fertility Reduction", "Max Imported ROTA from 2022 1/y"]
 global tltl_alpha = fill(0.0, length(p_name))
 global gl_alpha = fill(1.0, length(p_name))
-global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Direct Air Capture of CO2 in 2100 GtCO2/y", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra Transfer of Govmnt Budget to Workers", "Goal for Extra Income from Commons (share of NI)", "Fraction of Extra Taxes Paid by Owners", "Goal for fraction of CO2-sources with CCS", "Extra ROC in energy productivity after 2022 1/y", "Goal for fraction new electrification", "Goal for renewable el fraction", "Goal for Crop Waste Reduction", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Extra ROC in Food Sector Productivity from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)", "Goal for Extra Fertility Reduction", "Max Imported ROTA from 2022 1/y"]
 
 function _variables(e4a)
     variables = [
@@ -75,7 +75,7 @@ function default_tltl_pars(x)
     y[5] = 0.0
     y[7] = 0.00
     # Fourth group
-    y[18] = 0.02
+    y[18] = 0.0
     y[15] = 0.05
     y[17] = 0.1
     y[16] = 0.1
@@ -557,4 +557,75 @@ function find_dominators_from_files(e4a, gl_sol, sol_array, α_fn, doms_fn)
     end
     close(f)
     println("Finished")
+end
+
+function read_vensim_dataset(fn, to_be_removed)
+    f::IOStream = open(fn, "r")
+    ds = Dict{String,Array{Float64}}()
+    for line in eachline(f)
+        split_line::Vector{String} = split(line, "\t")
+        s = replace(split_line[1], "\"" => "")
+        s = replace(s, to_be_removed => "")
+        s = replace(s, " (Year)" => "")
+        s = replace(s, "\$" => "dollar")
+        v::Array{Float64} = Array{Float64}(undef, length(split_line) - 1)
+        for i in 2:lastindex(split_line)
+            v[i-1] = parse(Float64, split_line[i])
+        end
+        ds[lowercase(s)] = v
+    end
+    close(f)
+    return ds
+end
+
+function compare(a, b, pepsi)
+    max_re = -1
+    max_re_a = 0
+    max_re_b = 0
+    max_re_i = 0
+    for i in 1:lastindex(a)
+        if (pepsi >= 0)
+            re = abs(a[i] - b[i]) / (abs(b[i]) + pepsi)
+        else
+            re = 0
+            if (a[i] != 0 || b[i] != 0)
+                re = (2 * abs(a[i] - b[i])) / (abs(a[i]) + abs(b[i]))
+                # re = abs(a[i] - b[i]) / max(abs(a[i]), abs(b[i]))
+            end
+        end
+        if (re > max_re)
+            max_re = max(max_re, re)
+            max_re_a = a[i]
+            max_re_b = b[i]
+            max_re_i = i
+        end
+    end
+    return max_re, max_re_a, max_re_b, max_re_i
+end
+
+function mre_sys(sol, sys, vs_ds, pepsi, nt, verbose)
+    max_re = 0.0
+    for v in states(sys)
+        d = getdescription(v)
+        if (d != "" && d != "Time instants" && !startswith(d, "LV functions") && !startswith(d, "RT functions"))
+            if (get(vs_ds, lowercase(d), "") != "")
+                re, _, _, _ = Earth4All.compare(sol[v][1:nt], vs_ds[lowercase(d)], pepsi)
+                max_re = max(max_re, re)
+                if (verbose)
+                    println(d, "\t", re)
+                end
+            end
+        end
+    end
+    return max_re
+end
+
+function all_mre(scen, sector, sys, sol)
+    max_re = 0
+    # sn = ["climate", "demand", "energy", "finance", "foodland", "inventory", "labourmarket", "other", "output", "population", "public", "wellbeing"]
+    println("====" * uppercase(sector) * "====")
+    vs_ds = read_vensim_dataset("vensim/" * lowercase(scen) * "/" * sector * ".txt", " : E4A-220501 " * scen)
+    re = mre_sys(sol, sys, vs_ds, 1, 7681, true)
+    max_re = max(max_re, re)
+    println("====MAXIMUM ERROR===" * string(max_re))
 end
