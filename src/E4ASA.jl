@@ -11,8 +11,11 @@ using WorldDynamics
 
 global p_name = ["ERDN2OKF2022", "ERDCH4KC2022", "DACCO22100", "FGDC2022", "EETF2022", "EGTRF2022", "EPTF2022", "ETGBW", "GEIC", "FETPO", "GFCO2SCCS", "EROCEPA2022", "GFNE", "GREF", "GCWR", "GFNRM", "GFRA", "EROCFSP", "USPIS2022", "USPUS2022", "GEFR", "MIROTA2022"]
 global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Direct Air Capture of CO2 in 2100 GtCO2/y", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra Transfer of Govmnt Budget to Workers", "Goal for Extra Income from Commons (share of NI)", "Fraction of Extra Taxes Paid by Owners", "Goal for fraction of CO2-sources with CCS", "Extra ROC in energy productivity after 2022 1/y", "Goal for fraction new electrification", "Goal for renewable el fraction", "Goal for Crop Waste Reduction", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Extra ROC in Food Sector Productivity from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)", "Goal for Extra Fertility Reduction", "Max Imported ROTA from 2022 1/y"]
+global p_desc_sorted = ["Direct Air Capture of CO2 in 2100 GtCO2/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Extra rate of decline in N2O per kg fertilizer from 2022", "Extra ROC in energy productivity after 2022 1/y", "Extra Transfer of Govmnt Budget to Workers", "Fraction of Extra Taxes Paid by Owners", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Goal for Crop Waste Reduction", "Goal for Extra Fertility Reduction", "Goal for Extra Income from Commons (share of NI)", "Goal for fraction of CO2-sources with CCS", "Goal for fraction new electrification", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Goal for renewable el fraction", "Max Imported ROTA from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)"]
+global p_map = [3, 5, 6, 7, 2, 1, 12, 8, 10, 4, 15, 21, 9, 11, 13, 16, 17, 14, 22, 19, 20]
 global tltl_alpha = fill(0.0, length(p_name))
 global gl_alpha = fill(1.0, length(p_name))
+global v_name = ["Average wellbeing", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
 
 function _variables(e4a)
     variables = [
@@ -123,6 +126,71 @@ function compute_alpha_sol(prob, fixed_p, α, p)
     prob = remake(prob, p=tltl_p)
     sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
     return sol
+end
+
+function local_sensitivity(e4a, prob)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    prob = remake(prob, p=tltl_p)
+    tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    perc = []
+    for p in 1:lastindex(gl_p)
+        println("Computing percentages for parameter ", p)
+        δ = gl_p[p] - tltl_p[p]
+        sol = []
+        for α in 1:lastindex(α_values)
+            tltl_p = default_tltl_pars(prob.p)
+            tltl_p[p] = tltl_p[p] + δ * α_values[α]
+            if (tltl_p[p] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+                prob = remake(prob, p=tltl_p)
+                push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+            else
+                tltl_p = default_tltl_pars(prob.p)
+                if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
+                    tltl_p[p] = 0.99999999
+                    prob = remake(prob, p=tltl_p)
+                    push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+                end
+            end
+        end
+        perc_p = []
+        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
+            perc_v = []
+            for i in 1:lastindex(sol)
+                li = lastindex(sol[i][v])
+                push!(perc_v, (sol[i][v][li] - tltl_sol[v][li]) / tltl_sol[v][li])
+            end
+            push!(perc_p, perc_v)
+        end
+        push!(perc, perc_p)
+    end
+    return perc
+end
+
+function plot_perc(perc, p, sl)
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    δ = gl_p[p] - tltl_p[p]
+    println(δ)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    x_labels = []
+    for α in 1:lastindex(α_values)
+        if (tltl_p[p] + δ * α_values[α] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+            push!(x_labels, tltl_p[p] + δ * α_values[α])
+        else
+            if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
+                push!(x_labels, 1.0)
+            end
+        end
+    end
+    println(x_labels)
+    data = GenericTrace[]
+    for v in 1:lastindex(perc[p])
+        push!(data, scatter(; x=x_labels, y=perc[p][v], name=v_name[v], mode="lines+markers"))
+    end
+    layout = Layout(; title=p_desc[p], yaxis_range=[-1.0, 2.0], showlegend=sl)
+    PlotlyJS.plot(data, layout)
 end
 
 function compute_all_sols(fixed_p, α_values, p, suffix)
@@ -628,4 +696,34 @@ function all_mre(scen, sector, sys, sol)
     re = mre_sys(sol, sys, vs_ds, 1, 7681, true)
     max_re = max(max_re, re)
     println("====MAXIMUM ERROR===" * string(max_re))
+end
+
+# function sobol_bar_plots(e4a, res)
+#     fp = "plots/sobol/"
+#     mkpath(fp)
+#     v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
+#     a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
+#     for i in 1:lastindex(v)
+#         p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i-1, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i-1, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
+#         savefig(p, fp * a[i] * "_06.html")
+#         savefig(p, fp * a[i] * "_06.png")
+#         p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
+#         savefig(p, fp * a[i] * "_12.html")
+#         savefig(p, fp * a[i] * "_12.png")
+#     end
+# end
+
+function sobol_bar_plots(res)
+    fp = "plots/sobol/"
+    mkpath(fp)
+    v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
+    a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
+    for i in 1:lastindex(v)
+        p = plot([bar(x=p_name[p_map], y=res.S1[2*i-1, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i-1, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
+        savefig(p, fp * a[i] * "_06.html")
+        savefig(p, fp * a[i] * "_06.png")
+        p = plot([bar(x=p_name[p_map], y=res.S1[2*i, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
+        savefig(p, fp * a[i] * "_12.html")
+        savefig(p, fp * a[i] * "_12.png")
+    end
 end
