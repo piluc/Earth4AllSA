@@ -677,7 +677,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     @variables EDELC(t) [description = "Excess Demand Effect on Life of Capacity (1)"]
     @variables FACNC(t) = inits[:FACNC] [description = "Fraction of Available Capital to New Capacity (1)"]
     @variables FRACAMGDPPL(t) [description = "FRACA Mult from GDPpP - Line (1)"]
-    @variables FRACAMGDPPT(t) [description = "FRACA Mult from GDPpP - Table (1)"]
     @variables ISGDP(t) [description = "Investment Share of GDP (1)"]
     @variables LCPIS(t) [description = "Life of Capacity PIS y"]
     @variables OGR(t) = params[:OG1980] [description = "Output Growth Rate 1/y"]
@@ -1276,7 +1275,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, EDELC ~ 1 + EDELCM * (PEDE / ED1980 - 1))
     smooth!(eqs, FACNC, FRA1980 * FRACAMGDPPL * (WSOEFCA + CBCEFCA + EDEFCA) / 3, IPT)
     add_equation!(eqs, FRACAMGDPPL ~ max(FRACAM, 1 + GDPPEFRACA * (GDPP / GDPP1980 - 1)))
-    add_equation!(eqs, FRACAMGDPPT ~ withlookup(GDPP / GDPP1980, [(0.0, 1.0), (1.0, 1.0), (2.0, 0.85), (2.1, 0.84), (4.0, 0.65), (8.0, 0.55), (16.0, 0.5)]))
     add_equation!(eqs, ISGDP ~ (INCPIS + GIPC) / GDP)
     add_equation!(eqs, LCPIS ~ (LCPIS1980 * OWELC) / EDELC)
     smooth!(eqs, OGR, (ORO - OLY) / OLY, 1)
