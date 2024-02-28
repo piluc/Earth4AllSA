@@ -456,7 +456,7 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     @variables FFLREOGRR(t) [description = "FFLReoOGRR"]
     @variables FNRM(t) [description = "Fraction New Red Meat (1)"]
     @variables FOFO(t) [description = "FOod FOotprint"]
-    @variables FOLA(t) = params[:INITFOLA] [description = "FOrestry LAnd Mha"]
+    @variables FOLA(t) = params[:FOLA1980] [description = "FOrestry LAnd Mha"]
     @variables FPI(t) [description = "Fertilizer Productivity Index (1980=1)"]
     @variables FRA(t) [description = "Fraction Regenerative Agriculture (1)"]
     @variables FSPI(t) [description = "Food Sector Productivity Index (1980=1)"]
@@ -844,10 +844,10 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     @variables WBEP(t) [description = "WellBeing Effect of Participation (1)"]
 
     #other parameters 
-    INITFOLA = params[:INITFOLA]
-    INITNHW = params[:INITNHW]
-    INITWSO = params[:INITWSO]
-    INITWF = params[:INITWF]
+    FOLA1980 = params[:FOLA1980]
+    NHW1980 = params[:NHW1980]
+    WSO1980 = params[:WSO1980]
+    WF1980 = params[:WF1980]
     INITSTE = params[:INITSTE]
     INITSOTR = params[:INITSOTR]
 
@@ -1124,7 +1124,7 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, FERM ~ RMF * KCKRM)
     add_equation!(eqs, FEUS ~ CRLA * (1 - FRA) * FUCA / 1000)
     add_equation!(eqs, FFI ~ FOFO / FF80)
-    add_equation!(eqs, FFLR ~ max(0, FOLA / INITFOLA))
+    add_equation!(eqs, FFLR ~ max(0, FOLA / FOLA1980))
     add_equation!(eqs, FFLREOGRR ~ max(1, 1 + FFLREOGRRM * (FFLR - TFFLR)))
     add_equation!(eqs, FNRM ~ ramp(t, GFNRM / IPP, 2022, 2022 + IPP))
     add_equation!(eqs, FOFO ~ CRLA * FEUS)
@@ -1194,7 +1194,7 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     # labourmarket
     add_equation!(eqs, AGIW ~ WARA * AHW)
     add_equation!(eqs, AHW ~ NHW / PFTJ)
-    add_equation!(eqs, AHW1980 ~ INITNHW / PFTJ80)
+    add_equation!(eqs, AHW1980 ~ NHW1980 / PFTJ80)
     add_equation!(eqs, AVWO ~ WAP * LPR)
     add_equation!(eqs, CECLR ~ ROCECLR * ECLR)
     add_equation!(eqs, CHWO ~ (OPWO - WF) / HFD)
@@ -1205,15 +1205,15 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, ENLPR2022 ~ ramp(t, GENLPR / IPP, 2022, 2022 + IPP))
     add_equation!(eqs, HFD ~ TYLD / 3)
     add_equation!(eqs, HWMGDPP ~ 1 + TENHW * (GDPP / GDPP1980 - 1))
-    add_equation!(eqs, IWEOCLR ~ 1 + WSOECLR * (WSO / INITWSO - 1))
+    add_equation!(eqs, IWEOCLR ~ 1 + WSOECLR * (WSO / WSO1980 - 1))
     add_equation!(eqs, ILPR ~ NLPR - PSW)
     add_equation!(eqs, LAPR ~ (OUTP * PRUN) / LAUS)
     add_equation!(eqs, LAUS ~ WF * AHW)
-    add_equation!(eqs, LAUS80 ~ INITWF * AHW1980)
+    add_equation!(eqs, LAUS80 ~ WF1980 * AHW1980)
     smooth!(eqs, LPR, ILPR, TELLM)
     add_equation!(eqs, LTEWSO ~ WSO * RWER)
-    smooth!(eqs, NHW, INITNHW * HWMGDPP, TAHW)
-    add_equation!(eqs, NLPR ~ NLPR80 * (1 + WSOELPR * (WSO / INITWSO - 1)) + ENLPR2022)
+    smooth!(eqs, NHW, NHW1980 * HWMGDPP, TAHW)
+    add_equation!(eqs, NLPR ~ NLPR80 * (1 + WSOELPR * (WSO / WSO1980 - 1)) + ENLPR2022)
     add_equation!(eqs, OCLR ~ ECLR * WEOCLR)
     add_equation!(eqs, OPWO ~ (CAP / OCLR) * PFTJ)
     add_equation!(eqs, PART ~ LPR * (1 - PURA))
@@ -1284,7 +1284,7 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, OOV ~ ORO * PRUN)
     add_equation!(eqs, ORO ~ OO1980 * ((CPIS + CPUS) / (CAPPIS1980 + CAPPUS1980))^KAPPA * (LAUS / LAUS1980)^LAMBDA * (ETFP))
     smooth!(eqs, PEDE, EDE, TOED)
-    add_equation!(eqs, WSOEFCA ~ 1 + WSOEFRA * (WASH / INITWSO - 1))
+    add_equation!(eqs, WSOEFCA ~ 1 + WSOEFRA * (WASH / WSO1980 - 1))
 
     # population
     add_equation!(eqs, D(A0020) ~ BIRTHS - PASS20)

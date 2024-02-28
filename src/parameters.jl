@@ -1,8 +1,8 @@
 _params = Dict{Symbol,Float64}(
-    :INITFOLA => 1100,
-    :INITNHW => 2,
-    :INITWSO => 0.5,
-    :INITWF => 1530,
+    :FOLA1980 => 1100,
+    :NHW1980 => 2,
+    :WSO1980 => 0.5,
+    :WF1980 => 1530,
     :GDPP1980 => 6.4,
     # :INITEGDPP => 6.4,
     :EPA22 => 0,
