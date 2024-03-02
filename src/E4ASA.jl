@@ -128,12 +128,12 @@ function compute_alpha_sol(prob, fixed_p, α, p)
     return sol
 end
 
-function local_sensitivity(e4a, prob)
+function local_sensitivity_tltl(e4a, prob, base_sol)
     α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
     gl_p = default_gl_pars(prob.p)
     tltl_p = default_tltl_pars(prob.p)
     prob = remake(prob, p=tltl_p)
-    tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    # tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
     perc = []
     for p in 1:lastindex(gl_p)
         println("Computing percentages for parameter ", p)
@@ -159,13 +159,72 @@ function local_sensitivity(e4a, prob)
             perc_v = []
             for i in 1:lastindex(sol)
                 li = lastindex(sol[i][v])
-                push!(perc_v, (sol[i][v][li] - tltl_sol[v][li]) / tltl_sol[v][li])
+                push!(perc_v, (sol[i][v][li] - base_sol[v][li]) / base_sol[v][li])
             end
             push!(perc_p, perc_v)
         end
         push!(perc, perc_p)
     end
     return perc
+end
+
+function local_sensitivity_gl(e4a, prob, base_sol)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    prob = remake(prob, p=tltl_p)
+    # tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    perc = []
+    for p in 1:lastindex(gl_p)
+        println("Computing percentages for parameter ", p)
+        δ = gl_p[p] - tltl_p[p]
+        sol = []
+        for α in 1:lastindex(α_values)
+            gl_p = default_gl_pars(prob.p)
+            gl_p[p] = tltl_p[p] + δ * α_values[α]
+            if (gl_p[p] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+                prob = remake(prob, p=gl_p)
+                push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+            else
+                gl_p = default_gl_pars(prob.p)
+                if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
+                    gl_p[p] = 0.99999999
+                    prob = remake(prob, p=gl_p)
+                    push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+                end
+            end
+        end
+        perc_p = []
+        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
+            perc_v = []
+            for i in 1:lastindex(sol)
+                li = lastindex(sol[i][v])
+                push!(perc_v, (sol[i][v][li] - base_sol[v][li]) / base_sol[v][li])
+            end
+            push!(perc_p, perc_v)
+        end
+        push!(perc, perc_p)
+    end
+    return perc
+end
+
+function spider_plot(perc, sys, v, pars, tt, sl, acron)
+    par_n = parameters(sys)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    data = GenericTrace[]
+    for p in pars
+        scatter_name = getdescription(par_n[p])
+        if (acron)
+            scatter_name = p_name[p]
+        end
+        push!(data, scatter(; x=α_values, y=perc[p][v], name=scatter_name, mode="lines+markers"))
+    end
+    plot_title = ""
+    if (tt)
+        plot_title = v_name[v]
+    end
+    layout = Layout(; title=plot_title, xaxis=attr(tickmode="array", tickvals=[0.0, 1.0, 2.0], ticktext=["Low=TLTL", "Base=GL", "High"]), yaxis_range=[-0.25, 0.25], yaxis=attr(tickmode="array", tickvals=[-0.2, -0.1, 0.0, 0.1, 0.2], ticktext=["-20%", "-10%", "0%", "10%", "20%"]), showlegend=sl)
+    PlotlyJS.plot(data, layout)
 end
 
 function plot_perc(perc, p, sl)
@@ -726,4 +785,99 @@ function sobol_bar_plots(res)
         savefig(p, fp * a[i] * "_12.html")
         savefig(p, fp * a[i] * "_12.png")
     end
+end
+
+# function tornado_diagram(sys, prob, sol, var, delta_t)
+#     pars = parameters(sys)
+#     np = length(pars)
+#     bb = mean(sol[var][end-delta_t:end])
+#     lb = fill(0.0, np)
+#     ub = fill(0.0, np)
+#     for p in 1:np
+#         a = fill(1.0, np)
+#         a[p] = 0.0
+#         lb_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+#         lb[p] = (mean(lb_sol[var][end-delta_t:end]) - bb) / bb
+#         a = fill(1.0, np)
+#         a[p] = 2.0
+#         ub_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+#         ub[p] = (mean(ub_sol[var][end-delta_t:end]) - bb) / bb
+#     end
+#     db = abs.(ub - lb)
+#     ldp = sortperm(db, rev=true)
+#     println(ldp)
+#     println()
+#     for p in 1:np
+#         print("(", round(lb[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
+#     end
+#     println()
+#     println()
+#     for p in 1:np
+#         print("(", round(ub[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
+#     end
+#     println()
+#     println()
+#     for p in np:-1:1
+#         print(pars[ldp[p]], ", ")
+#     end
+#     println()
+#     println()
+#     for p in np:-1:1
+#         print(getdescription(pars[ldp[p]]), ", ")
+#     end
+#     println()
+# end
+
+function tornado_diagram(sys, prob, sol, var, delta_t)
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    pars = parameters(sys)
+    np = length(pars)
+    bb = mean(sol[var][end-delta_t:end])
+    lb = fill(0.0, np)
+    ub = fill(0.0, np)
+    for p in 1:np
+        δ = gl_p[p] - tltl_p[p]
+        if (δ > 0)
+            a = fill(1.0, np)
+            a[p] = 0.0
+            lb_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+            lb[p] = (mean(lb_sol[var][end-delta_t:end]) - bb) / bb
+            a = fill(1.0, np)
+            if (tltl_p[p] + 2.0 * δ <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+                a[p] = 2.0
+            else
+                a[p] = (0.99999999 - tltl_p[p]) / δ
+            end
+            ub_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+            ub[p] = (mean(ub_sol[var][end-delta_t:end]) - bb) / bb
+        else
+            lb[p] = 0.0
+            ub[p] = 0.0
+        end
+    end
+    db = abs.(ub - lb)
+    # println(pars[21], ": ", lb[21], " ", ub[21], " ", db[21])
+    ldp = sortperm(db, rev=true)
+    println(ldp)
+    println()
+    for p in 1:np
+        print("(", round(lb[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
+    end
+    println()
+    println()
+    for p in 1:np
+        print("(", round(ub[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
+    end
+    println()
+    println()
+    for p in np:-1:1
+        print(pars[ldp[p]], ", ")
+    end
+    println()
+    println()
+    for p in np:-1:1
+        print(getdescription(pars[ldp[p]]), ", ")
+    end
+    println()
 end

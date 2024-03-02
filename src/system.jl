@@ -54,61 +54,59 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     TRSA1980 = params[:TRSA1980]
     PD = params[:PD]
 
-    @variables KN2OEKF(t) [description = "kg N2O emission per kg fertiliser"]
-    @variables MMN2OE(t) [description = "Man-made N2O emissions GtN2O/y"]
-    @variables NN2OE(t) [description = "Natural N2O emissions GtN2O/y"]
-    @variables N2OE(t) [description = "N2O emissions GtN2O/y"]
-    @variables N2OC1980(t) [description = "N2O conc in 1980 ppm"]
-    @variables N2OA(t) = inits[:N2OA] [description = "N2O in Atmosphere GtN2O"]
-    @variables N2OBD(t) [description = "N2O BreakDown GtN2O/y"]
-    @variables N2OCA(t) [description = "N2O concentration in atm ppm"]
-    @variables N2OFPP(t) [description = "N2O forcing per ppm W/m2/ppm"]
-    @variables FN2O(t) [description = "Forcing from N2O W/m2"]
-    @variables KCH4EKC(t) [description = "kg CH4 emission per kg crop"]
-    @variables MMCH4E(t) [description = "Man-made CH4 emissions GtCH4/y"]
-    @variables NCH4E(t) [description = "Natural CH4 emissions GtCH4/y"]
-    @variables CH4E(t) [description = "CH4 emissions GtCH4/y"]
-    @variables CH4C1980(t) [description = "CH4 conc in 1980 ppm"]
+    @variables AL(t) [description = "ALbedo (1)"]
+    @variables AL1980(t) [description = "ALbedo in 1980 (1)"]
+    @variables CAC(t) [description = "Cost of air capture GDollar/y"]
     @variables CH4A(t) = inits[:CH4A] [description = "CH4 in Atmosphere GtCH4"]
     @variables CH4BD(t) [description = "CH4 BreakDown GtCH4/y"]
     @variables CH4CA(t) [description = "CH4 concentration in atm ppm"]
+    @variables CH4E(t) [description = "CH4 emissions GtCH4/y"]
     @variables CH4FPP(t) [description = "CH4 forcing per ppm W/m2/ppm"]
-    @variables FCH4(t) [description = "Forcing from CH4 W/m2"]
-    @variables OWLCO2(t) [description = "OWeoLoCO2"]
-    @variables LECO2A(t) [description = "Life of extra CO2 in atm y"]
-    @variables CO2FCH4(t) [description = "CO2 from CH4 GtCO2/y"]
-    @variables CO2AB(t) [description = "CO2 absorption GtCO2/y"]
-    @variables CO2E(t) [description = "CO2 emissions GtCO2/y"]
-    @variables CO2GDP(t) [description = "CO2 per GDP (kgCO2/Dollar)"]
-    @variables CAC(t) [description = "Cost of air capture GDollar/y"]
-    @variables DACCO2(t) [description = "Direct Air Capture of CO2 GtCO2/y"]
     @variables CO2A(t) = inits[:CO2A] [description = "CO2 in Atmosphere GtCO2"]
+    @variables CO2AB(t) [description = "CO2 absorption GtCO2/y"]
     @variables CO2CA(t) [description = "CO2 concentration in atm ppm"]
+    @variables CO2E(t) [description = "CO2 emissions GtCO2/y"]
+    @variables CO2FCH4(t) [description = "CO2 from CH4 GtCO2/y"]
     @variables CO2FPP(t) [description = "CO2 forcing per ppm W/m2/ppm"]
-    @variables FCO2(t) [description = "Forcing from CO2 W/m2"]
-    @variables FOG(t) [description = "Forcing from other gases W/m2"]
-    @variables MMF(t) [description = "Man-made Forcing W/m2"]
-    @variables GHGE(t) [description = "GHG emissions GtCO2e/y"]
-    @variables AL1980(t) [description = "ALbedo in 1980 (1)"]
-    @variables AL(t) [description = "ALbedo (1)"]
-    @variables TRHGS(t) [description = "Transfer rate for heat going to space 1/y"]
-    @variables HTS(t) [description = "Heat to space ZJ/y"]
-    @variables MRS(t) [description = "Melting rate surface 1/y"]
-    @variables MRDI(t) [description = "Melting rate deep ice 1/y"]
+    @variables CO2GDP(t) [description = "CO2 per GDP (kgCO2/Dollar)"]
+    @variables DACCO2(t) [description = "Direct Air Capture of CO2 GtCO2/y"]
     @variables ECIM(t) [description = "Extra cooling from ice melt ZJ/y"]
-    @variables MEL(t) [description = "Melting Mha/y"]
-    @variables ISCEGA(t) = inits[:ISCEGA] [description = "Ice and snow cover excl G&A Mkm2"]
+    @variables EHS(t) = inits[:EHS] [description = "Extra heat in surface ZJ"]
+    @variables EWFF(t) [description = "Extra Warming from forcing ZJ/y"]
+    @variables FCH4(t) [description = "Forcing from CH4 W/m2"]
+    @variables FCO2(t) [description = "Forcing from CO2 W/m2"]
+    @variables FN2O(t) [description = "Forcing from N2O W/m2"]
+    @variables FOG(t) [description = "Forcing from other gases W/m2"]
+    @variables GHGE(t) [description = "GHG emissions GtCO2e/y"]
+    @variables HDO(t) [description = "Heat to deep ocean ZJ/y"]
+    @variables HTS(t) [description = "Heat to space ZJ/y"]
     @variables ISC(t) [description = "Ice and snow cover Mha"]
+    @variables ISCEGA(t) = inits[:ISCEGA] [description = "Ice and snow cover excl G&A Mkm2"]
+    @variables KCH4EKC(t) [description = "kg CH4 emission per kg crop"]
+    @variables KN2OEKF(t) [description = "kg N2O emission per kg fertiliser"]
+    @variables LECO2A(t) [description = "Life of extra CO2 in atm y"]
+    @variables MEL(t) [description = "Melting Mha/y"]
+    @variables MMCH4E(t) [description = "Man-made CH4 emissions GtCH4/y"]
+    @variables MMF(t) [description = "Man-made Forcing W/m2"]
+    @variables MMN2OE(t) [description = "Man-made N2O emissions GtN2O/y"]
+    @variables MRDI(t) [description = "Melting rate deep ice 1/y"]
+    @variables MRS(t) [description = "Melting rate surface 1/y"]
+    @variables N2OA(t) = inits[:N2OA] [description = "N2O in Atmosphere GtN2O"]
+    @variables N2OBD(t) [description = "N2O BreakDown GtN2O/y"]
+    @variables N2OCA(t) [description = "N2O concentration in atm ppm"]
+    @variables N2OE(t) [description = "N2O emissions GtN2O/y"]
+    @variables N2OFPP(t) [description = "N2O forcing per ppm W/m2/ppm"]
+    @variables NCH4E(t) [description = "Natural CH4 emissions GtCH4/y"]
+    @variables NN2OE(t) [description = "Natural N2O emissions GtN2O/y"]
+    @variables OW(t) [description = "OBserved WArming deg C"]
+    @variables OWLCO2(t) [description = "OWeoLoCO2"]
+    @variables PWA(t) = inits[:PWA] [description = "Perceived WArming deg C"]
+    @variables REHE(t) [description = "Risk of extreme heat event (1)"]
+    @variables TMMF(t) [description = "Total man-made forcing W/m2"]
+    @variables TRHGA(t) [description = "Transfer rate for heat going to abyss 1/y"]
+    @variables TRHGS(t) [description = "Transfer rate for heat going to space 1/y"]
     @variables WVC(t) [description = "Water Vapor Concentration g/kg"]
     @variables WVF(t) [description = "Water Vapour Feedback W/m2"]
-    @variables TMMF(t) [description = "Total man-made forcing W/m2"]
-    @variables EWFF(t) [description = "Extra Warming from forcing ZJ/y"]
-    @variables OW(t) [description = "OBserved WArming deg C"]
-    @variables REHE(t) [description = "Risk of extreme heat event (1)"]
-    @variables PWA(t) = inits[:PWA] [description = "Perceived WArming deg C"]
-    @variables TRHGA(t) [description = "Transfer rate for heat going to abyss 1/y"]
-    @variables HDO(t) [description = "Heat to deep ocean ZJ/y"]
-    @variables EHS(t) = inits[:EHS] [description = "Extra heat in surface ZJ"]
 
     # demand
     BITRW = params[:BITRW]
@@ -525,7 +523,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     @variables CDDI(t) [description = "Change in DDI 1/y"]
     @variables CPI(t) [description = "Change in Price Index 1/y"]
     @variables DEL(t) [description = "DELiveries Gu/y"]
-    @variables DEPU(t) [description = "DEmand PUlse 2020-25 (1)"]
     @variables DSWI(t) [description = "Desired Shifts Worked - Index (1)"]
     @variables GDP(t) [description = "GDP Gdollar/y"]
     @variables IC(t) [description = "Inventory Coverage y"]
@@ -792,7 +789,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     @variables TFPEE5TA(t) = inits[:TFPEE5TA] [description = "TFP Excluding Effect of 5TAs (1)"]
     @variables TFPIE5TA(t) [description = "TFP Including Effect of 5TAs (1)"]
     @variables VPSS(t) [description = "Value of Public Services Supplied GDollar/y"]
-    @variables XECTAGDP(t) [description = "XExtra Cost of TAs as share of GDP (1)"]
 
     # wellbeing
     AI = params[:AI]
@@ -847,8 +843,8 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     NHW1980 = params[:NHW1980]
     WSO1980 = params[:WSO1980]
     WF1980 = params[:WF1980]
-    INITSTE = params[:INITSTE]
-    INITSOTR = params[:INITSOTR]
+    STE1980 = params[:STE1980]
+    STR1980 = params[:STR1980]
 
 
     # climate
@@ -856,7 +852,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, MMN2OE ~ FEUS * KN2OEKF / 1000)
     add_equation!(eqs, NN2OE ~ withlookup(t, [(1980.0, 0.009), (2020.0, 0.009), (2099.27, 0.0)]))
     add_equation!(eqs, N2OE ~ NN2OE + MMN2OE)
-    add_equation!(eqs, N2OC1980 ~ N2OA1980 / MAT)
     add_equation!(eqs, D(N2OA) ~ N2OE - N2OBD)
     add_equation!(eqs, N2OBD ~ N2OA / LN2OA)
     add_equation!(eqs, N2OCA ~ N2OA / GN2OPP)
@@ -866,7 +861,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, MMCH4E ~ CRSU * KCH4EKC / 1000)
     add_equation!(eqs, NCH4E ~ withlookup(t, [(1980.0, 0.19), (2020.0, 0.19), (2100.0, 0.19)]))
     add_equation!(eqs, CH4E ~ NCH4E + MMCH4E)
-    add_equation!(eqs, CH4C1980 ~ CH4A1980 / MAT)
     add_equation!(eqs, D(CH4A) ~ CH4E - CH4BD)
     add_equation!(eqs, CH4BD ~ CH4A / LCH4A)
     add_equation!(eqs, CH4CA ~ CH4A / GCH4PP)
@@ -1173,7 +1167,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, CPI ~ PRIN * IR)
     add_equation!(eqs, DEL ~ ((EPP / PPU) / (DELDI / DDI1980)) * IfElse.ifelse(t > 1984, PNIS, 1))
     add_equation!(eqs, D(DELDI) ~ CDDI)
-    add_equation!(eqs, DEPU ~ 0 + PH * pulse(t, 2020, 5))
     add_equation!(eqs, DSWI ~ 1 + INVEOSWI * (PRI / DRI - 1))
     smooth!(eqs, EPP, TPP, DAT)
     add_equation!(eqs, GDP ~ OUTP * PPU)
@@ -1341,7 +1334,6 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, SC ~ VPSS / GDP)
     add_equation!(eqs, TFPIE5TA ~ TFPEE5TA * (1 - RTFPUA))
     add_equation!(eqs, VPSS ~ GPU * PPP)
-    add_equation!(eqs, XECTAGDP ~ XETAC2022 + ramp(t, (XETAC2100 - XETAC2022) / 78, 2022, 2022 + 78))
 
     # wellbeing
     add_equation!(eqs, AWBDI ~ exp(DRDI + log(WDI / TDI)))
@@ -1360,8 +1352,8 @@ function earth4all(; name, params=_params, inits=_inits, tables=_tables, ranges=
     add_equation!(eqs, PSESTR ~ WorldDynamics.interpolate(PSSGDP / SPS, tables[:PSESTR], ranges[:PSESTR]))
     smooth!(eqs, RD, IRD, TCRD)
     add_equation!(eqs, STE ~ 1 + PESTF * (ORP - AP))
-    add_equation!(eqs, STEERD ~ 1 + STEERDF * (STE / INITSTE - 1))
-    add_equation!(eqs, STRERD ~ 1 + STRERDF * (SOTR / INITSOTR - 1))
+    add_equation!(eqs, STEERD ~ 1 + STEERDF * (STE / STE1980 - 1))
+    add_equation!(eqs, STRERD ~ 1 + STRERDF * (SOTR / STR1980 - 1))
     smooth!(eqs, SOTR, IST, TEST)
     add_equation!(eqs, WBEP ~ 1 + PAEAWBF * (LPR / THPA - 1))
 
