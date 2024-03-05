@@ -84,7 +84,7 @@ The computation can then be done by running
 ```jl
 res = execute_sobol(10);
 ```
-Note that the execution time depends on the number of samples to be used (in the above code is 10). In the `sobol` directory the result obtained by running the code with 10000 samples is available and it can be loaded by running
+Note that the execution time of the Sobol analysis can be quite high and it depends on the number of samples to be used (in the above code is 10). For this reason, in the `sobol` directory the result obtained by running the code with 10000 samples is available and it can be loaded by running
 ```jl
 res = retrieve_sobol("sobol/sobol10000.dat");
 ```
