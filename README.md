@@ -14,83 +14,83 @@ git clone https://github.com/piluc/Earth4AllSA
 
 After starting the Julia REPL in the repository folder, we can instantiate the environment by running
 ```jl
-julia> using Pkg;
-julia> Pkg.activate(".");
-julia> Pkg.instantiate();
+using Pkg;
+Pkg.activate(".");
+Pkg.instantiate();
 ```
 
 We can then include the sensitivity analysis code, which also loads the `Earth4All` module, by running
 ```jl
-julia> include("src/E4ASA.jl");
+include("src/E4ASA.jl");
 ```
 
 ### Reproducing the TLTL scenario and the GL scenario
 
 The two scenarios can be reproduced by running
 ```jl
-julia> e4a, _, prob = e4a_sys_prob();
-julia> tltl = compute_tltl_sol(prob);
-julia> gl = compute_gl_sol(prob);
+e4a, _, prob = e4a_sys_prob();
+tltl = compute_tltl_sol(prob);
+gl = compute_gl_sol(prob);
 ```
 The final values of the six indicators in the two scenarios can be retrieved by running
 ```jl
-julia> tltl[e4a.AWBI][end]
-julia> gl[e4a.AWBI][end]
-julia> tltl[e4a.GDPP][end]
-julia> gl[e4a.GDPP][end]
-julia> tltl[e4a.INEQ][end]
-julia> gl[e4a.INEQ][end]
-julia> tltl[e4a.OW][end]
-julia> gl[e4a.OW][end]
-julia> tltl[e4a.POP][end]
-julia> gl[e4a.POP][end]
-julia> tltl[e4a.STE][end]
-julia> gl[e4a.STE][end]
+tltl[e4a.AWBI][end]
+gl[e4a.AWBI][end]
+tltl[e4a.GDPP][end]
+gl[e4a.GDPP][end]
+tltl[e4a.INEQ][end]
+gl[e4a.INEQ][end]
+tltl[e4a.OW][end]
+gl[e4a.OW][end]
+tltl[e4a.POP][end]
+gl[e4a.POP][end]
+tltl[e4a.STE][end]
+gl[e4a.STE][end]
 ```
 These values are the ones reported in the table of Fig. 1 of the paper. The figure itself can be reproduced by running
 
 ```jl
-julia> plot_two_sol_var(e4a, "TLTL", tltl, "GL", gl, collect(1:6), "", false, true)
+plot_two_sol_var(e4a, "TLTL", tltl, "GL", gl, collect(1:6), "", false, true)
 ```
 (actually the result is an interactive version of Fig. 1). One can also plot one scenario only by running, for example,
 ```jl
-julia> plot_sol_var(e4a, tltl, collect(1:6), "The TLTL scenario", false, true)
+plot_sol_var(e4a, tltl, collect(1:6), "The TLTL scenario", false, true)
 ```
 
 ### Reproducing the GL18 scenario
 
 This scenario can be reproduced by running
 ```jl
-julia> gl18 = compute_gl18_sol(prob);
+gl18 = compute_gl18_sol(prob);
 ```
 The MRE shown in Table 1 can be computed by running
 
 ```jl
-julia> compare(gl[e4a.AWBI], gl18[e4a.AWBI],1)
-julia> compare(gl[e4a.GDPP], gl18[e4a.GDPP],1)
-julia> compare(gl[e4a.INEQ], gl18[e4a.INEQ],1)
-julia> compare(gl[e4a.OW], gl18[e4a.OW],1)
-julia> compare(gl[e4a.POP], gl18[e4a.POP],1)
-julia> compare(gl[e4a.STE], gl18[e4a.STE],1)
+compare(gl[e4a.AWBI], gl18[e4a.AWBI],1)
+compare(gl[e4a.GDPP], gl18[e4a.GDPP],1)
+compare(gl[e4a.INEQ], gl18[e4a.INEQ],1)
+compare(gl[e4a.OW], gl18[e4a.OW],1)
+compare(gl[e4a.POP], gl18[e4a.POP],1)
+compare(gl[e4a.STE], gl18[e4a.STE],1)
 ```
 
 ### Executing the Sobol senisitivity analysis
 
 To compute the Sobol indices, we first need to include the corresponding Julia code by running
 ```jl
-julia> include("src/sobolsensitivity.jl");
+include("src/sobolsensitivity.jl");
 ```
 The computation can then be done by running
 ```jl
-julia> res = execute_sobol(10);
+res = execute_sobol(10);
 ```
 Note that the execution time depends on the number of samples to be used (in the above code is 10). In the `sobol` directory the result obtained by running the code with 10000 samples is available and it can be loaded by running
 ```jl
-julia> res = retrieve_sobol("sobol/sobol10000.dat");
+res = retrieve_sobol("sobol/sobol10000.dat");
 ```
 All the bar plots included in the paper can then be reproduced by running
 ```jl
-julia> sobol_bar_plots(res);
+sobol_bar_plots(res);
 ```
 The execution of the above code will create a directory `sobol/plots` containing, for each indicator, two HTML and two PNG files containingg the bar plots of the Sobol indices with respect to indicator (averaged over 6 and12 years, respectively). All plots use the acronym of each parameter, instead of its full name.
 
@@ -98,12 +98,12 @@ The execution of the above code will create a directory `sobol/plots` containing
 
 The tornado diagrams included in the paper can be obtained by running
 ```jl
-julia> td_awbi = tornado_diagram(e4a, prob, gl, e4a.AWBI, 120);
-julia> td_gdpp = tornado_diagram(e4a, prob, gl, e4a.GDPP, 120);
-julia> td_ineq = tornado_diagram(e4a, prob, gl, e4a.INEQ, 120);
-julia> td_ow = tornado_diagram(e4a, prob, gl, e4a.OW, 120);
-julia> td_pop = tornado_diagram(e4a, prob, gl, e4a.POP, 120);
-julia> td_ste = tornado_diagram(e4a, prob, gl, e4a.STE, 120);
+td_awbi = tornado_diagram(e4a, prob, gl, e4a.AWBI, 120);
+td_gdpp = tornado_diagram(e4a, prob, gl, e4a.GDPP, 120);
+td_ineq = tornado_diagram(e4a, prob, gl, e4a.INEQ, 120);
+td_ow = tornado_diagram(e4a, prob, gl, e4a.OW, 120);
+td_pop = tornado_diagram(e4a, prob, gl, e4a.POP, 120);
+td_ste = tornado_diagram(e4a, prob, gl, e4a.STE, 120);
 ```
 For example, the first nine elements of `td_awbi` are
 ```
@@ -121,8 +121,8 @@ which correspond to the nine first lines of the tornado diagram shown in Fig. 5 
 
 The spider diagram shown in Fig. 6, instead, can be generated by running
 ```jl
-julia> perc = local_sensitivity_gl(e4a, prob, gl);
-julia> spider_plot(perc, e4a, 1, [8,22,3,9,5,7,20,11,19], false, true, false)
+perc = local_sensitivity_gl(e4a, prob, gl);
+spider_plot(perc, e4a, 1, [8,22,3,9,5,7,20,11,19], false, true, false)
 ```
 (note that 1 is the index of the variable `e4a.AWBI` and `[8,22,3,9,5,7,20,11,19]` are the indices of the first nine parameters in the tornado diagram correspondign to this variable). The other spider diagrams can be generated by running a similar code for each of the remaining five variables.
 
