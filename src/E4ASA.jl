@@ -2,6 +2,7 @@ include("Earth4All.jl")
 
 using ColorTypes
 using ColorSchemes
+using GlobalSensitivity
 using ModelingToolkit
 using DifferentialEquations
 using PlotlyJS
@@ -28,69 +29,69 @@ function _variables(e4a)
     return variables
 end
 
-function default_gl_pars(x)
-    y = copy(x)
-    # First group
-    y[4] = 0.1
-    y[19] = 0.01
-    y[20] = 0.01
-    y[22] = 0.005
-    # Second group
-    y[6] = 0.01
-    y[10] = 0.8
-    y[8] = 0.2
-    y[9] = 0.02
-    # Third group
-    y[21] = 0.2
-    y[5] = 0.02
-    y[7] = 0.02
-    # Fourth group
-    y[18] = 0.0
-    y[15] = 0.2
-    y[17] = 0.5
-    y[16] = 0.5
-    # Fifth group
-    y[12] = 0.004
-    y[13] = 1.0
-    y[14] = 1.0
-    y[11] = 0.9
-    y[3] = 8.0
-    # Sixth group
-    y[2] = 0.01
-    y[1] = 0.01
-    return y
-end
-
 function default_tltl_pars(x)
     y = copy(x)
-    # First group
+    # Poverty turnaround
     y[4] = 0.0
     y[19] = 0.0
     y[20] = 0.0
     y[22] = 0.0
-    # Second group
+    # Inequality turnaround
     y[6] = 0.0
     y[10] = 0.5
     y[8] = 0.0
     y[9] = 0.0
-    # Third group
+    # Empowerment turnaround
     y[21] = 0.0
     y[5] = 0.0
     y[7] = 0.00
-    # Fourth group
+    # Food turnaround
     y[18] = 0.0
     y[15] = 0.05
     y[17] = 0.1
     y[16] = 0.1
-    # Fifth group
+    # Energy turnaround
     y[12] = 0.002
     y[13] = 0.5
     y[14] = 0.5
     y[11] = 0.2
     y[3] = 0.0
-    # Sixth group
+    # Other
     y[2] = 0.0
     y[1] = 0.0
+    return y
+end
+
+function default_gl_pars(x)
+    y = copy(x)
+    # Poverty turnaround
+    y[4] = 0.1
+    y[19] = 0.01
+    y[20] = 0.01
+    y[22] = 0.005
+    # Inequality turnaround
+    y[6] = 0.01
+    y[10] = 0.8
+    y[8] = 0.2
+    y[9] = 0.02
+    # Empowerment turnaround
+    y[21] = 0.2
+    y[5] = 0.02
+    y[7] = 0.02
+    # Food turnaround
+    y[18] = 0.0
+    y[15] = 0.2
+    y[17] = 0.5
+    y[16] = 0.5
+    # Energy turnaround
+    y[12] = 0.004
+    y[13] = 1.0
+    y[14] = 1.0
+    y[11] = 0.9
+    y[3] = 8.0
+    # Other
+    y[2] = 0.01
+    y[1] = 0.01
     return y
 end
 
@@ -111,314 +112,6 @@ function compute_tltl_sol(prob)
     prob = remake(prob, p=default_tltl_pars(prob.p))
     sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
     return sol
-end
-
-function compute_alpha_sol(prob, fixed_p, α, p)
-    tltl_p = default_tltl_pars(prob.p)
-    gl_p = default_gl_pars(prob.p)
-    δ = gl_p - tltl_p
-    for i in 1:lastindex(p)
-        tltl_p[p[i]] = tltl_p[p[i]] + δ[p[i]] * α[i]
-    end
-    for i in 1:lastindex(fixed_p)
-        tltl_p[fixed_p[i][1]] = fixed_p[i][2]
-    end
-    prob = remake(prob, p=tltl_p)
-    sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    return sol
-end
-
-function local_sensitivity_tltl(e4a, prob, base_sol)
-    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=tltl_p)
-    # tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    perc = []
-    for p in 1:lastindex(gl_p)
-        println("Computing percentages for parameter ", p)
-        δ = gl_p[p] - tltl_p[p]
-        sol = []
-        for α in 1:lastindex(α_values)
-            tltl_p = default_tltl_pars(prob.p)
-            tltl_p[p] = tltl_p[p] + δ * α_values[α]
-            if (tltl_p[p] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
-                prob = remake(prob, p=tltl_p)
-                push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-            else
-                tltl_p = default_tltl_pars(prob.p)
-                if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
-                    tltl_p[p] = 0.99999999
-                    prob = remake(prob, p=tltl_p)
-                    push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-                end
-            end
-        end
-        perc_p = []
-        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-            perc_v = []
-            for i in 1:lastindex(sol)
-                li = lastindex(sol[i][v])
-                push!(perc_v, (sol[i][v][li] - base_sol[v][li]) / base_sol[v][li])
-            end
-            push!(perc_p, perc_v)
-        end
-        push!(perc, perc_p)
-    end
-    return perc
-end
-
-function local_sensitivity_gl(e4a, prob, base_sol)
-    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    prob = remake(prob, p=tltl_p)
-    # tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-    perc = []
-    for p in 1:lastindex(gl_p)
-        println("Computing percentages for parameter ", p)
-        δ = gl_p[p] - tltl_p[p]
-        sol = []
-        for α in 1:lastindex(α_values)
-            gl_p = default_gl_pars(prob.p)
-            gl_p[p] = tltl_p[p] + δ * α_values[α]
-            if (gl_p[p] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
-                prob = remake(prob, p=gl_p)
-                push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-            else
-                gl_p = default_gl_pars(prob.p)
-                if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
-                    gl_p[p] = 0.99999999
-                    prob = remake(prob, p=gl_p)
-                    push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
-                end
-            end
-        end
-        perc_p = []
-        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
-            perc_v = []
-            for i in 1:lastindex(sol)
-                li = lastindex(sol[i][v])
-                push!(perc_v, (sol[i][v][li] - base_sol[v][li]) / base_sol[v][li])
-            end
-            push!(perc_p, perc_v)
-        end
-        push!(perc, perc_p)
-    end
-    return perc
-end
-
-function spider_plot(perc, sys, v, pars, tt, sl, acron)
-    par_n = parameters(sys)
-    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-    data = GenericTrace[]
-    for p in pars
-        scatter_name = getdescription(par_n[p])
-        if (acron)
-            scatter_name = p_name[p]
-        end
-        push!(data, scatter(; x=α_values, y=perc[p][v], name=scatter_name, mode="lines+markers"))
-    end
-    plot_title = ""
-    if (tt)
-        plot_title = v_name[v]
-    end
-    layout = Layout(; title=plot_title, xaxis=attr(tickmode="array", tickvals=[0.0, 1.0, 2.0], ticktext=["Low=TLTL", "Base=GL", "High"]), yaxis_range=[-0.25, 0.25], yaxis=attr(tickmode="array", tickvals=[-0.2, -0.1, 0.0, 0.1, 0.2], ticktext=["-20%", "-10%", "0%", "10%", "20%"]), showlegend=sl)
-    PlotlyJS.plot(data, layout)
-end
-
-function plot_perc(perc, p, sl)
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    δ = gl_p[p] - tltl_p[p]
-    println(δ)
-    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
-    x_labels = []
-    for α in 1:lastindex(α_values)
-        if (tltl_p[p] + δ * α_values[α] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
-            push!(x_labels, tltl_p[p] + δ * α_values[α])
-        else
-            if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
-                push!(x_labels, 1.0)
-            end
-        end
-    end
-    println(x_labels)
-    data = GenericTrace[]
-    for v in 1:lastindex(perc[p])
-        push!(data, scatter(; x=x_labels, y=perc[p][v], name=v_name[v], mode="lines+markers"))
-    end
-    layout = Layout(; title=p_desc[p], yaxis_range=[-1.0, 2.0], showlegend=sl)
-    PlotlyJS.plot(data, layout)
-end
-
-function compute_all_sols(fixed_p, α_values, p, suffix)
-    @named e4a = Earth4All.earth4all()
-    e4a_sys = structural_simplify(e4a)
-    prob = ODEProblem(e4a_sys, [], (1980, 2100))
-    sol_array = compute_all_sols(fixed_p, α_values, p, prob, e4a)
-    mkpath("sols/")
-    serialize("sols/sols_" * string(length(α_values)) * "_" * string(length(p)) * suffix * ".dat", sol_array)
-end
-
-function compute_all_sols(fixed_p, α_values, p, prob, e4a)
-    α = fill(0, length(p))
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    δ = gl_p - tltl_p
-    sol_array = []
-    compute_all_sols(length(α_values), α, 0, fixed_p, α_values, δ, prob, e4a, p, sol_array)
-    return sol_array
-end
-
-function compute_all_sols(n, α, i, fixed_p, α_values, δ, prob, e4a, p, sol_array)
-    if (i == length(α))
-        tltl_p = default_tltl_pars(prob.p)
-        for pi in 1:lastindex(p)
-            tltl_p[p[pi]] = tltl_p[p[pi]] + δ[p[pi]] * α_values[α[pi]]
-        end
-        for i in 1:lastindex(fixed_p)
-            tltl_p[fixed_p[i][1]] = fixed_p[i][2]
-        end
-        prob = remake(prob, p=tltl_p)
-        sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-        li = lastindex(sol.t)
-        sol_v = [sol[e4a.AWBI][li], sol[e4a.GDPP][li], sol[e4a.INEQ][li], sol[e4a.OW][li], sol[e4a.POP][li], sol[e4a.STE][li]]
-        push!(sol_array, sol_v)
-        println(α)
-    else
-        for a in 1:n
-            α[i+1] = a
-            compute_all_sols(n, α, i + 1, fixed_p, α_values, δ, prob, e4a, p, sol_array)
-        end
-    end
-end
-
-function compute_all_subset_sols(prob, e4a)
-    sol_array = []
-    compute_all_subset_sols(fill(1, length(p_name)), length(p_name) + 1, prob, e4a, sol_array)
-    mkpath("sols/")
-    serialize("sols/sols_all_subsets.dat", sol_array)
-end
-
-function compute_all_subset_sols(a, b, prob, e4a, sol_array)
-    if (b == 1)
-        tltl_p = default_tltl_pars(prob.p)
-        gl_p = default_gl_pars(prob.p)
-        for pi in 1:lastindex(tltl_p)
-            if (a[pi] == 1)
-                tltl_p[pi] = gl_p[pi]
-            end
-        end
-        prob = remake(prob, p=tltl_p)
-        sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
-        li = lastindex(sol.t)
-        sol_v = [sol[e4a.AWBI][li], sol[e4a.GDPP][li], sol[e4a.INEQ][li], sol[e4a.OW][li], sol[e4a.POP][li], sol[e4a.STE][li]]
-        push!(sol_array, sol_v)
-        println(a)
-    else
-        a[b-1] = 0
-        compute_all_subset_sols(a, b - 1, prob, e4a, sol_array)
-        a[b-1] = 1
-        compute_all_subset_sols(a, b - 1, prob, e4a, sol_array)
-    end
-end
-
-function check_all_subsets(sol_fn, dom_fn, apx_fn, e4a, gl_sol, abs_tol, rel_tol)
-    sol_array = deserialize(sol_fn)
-    li = lastindex(gl_sol.t)
-    df = open(dom_fn, "w")
-    af = open(apx_fn, "w")
-    for r in lastindex(sol_array):-1:1
-        if (sol_array[r][1] >= gl_sol[e4a.AWBI][li] && sol_array[r][2] >= gl_sol[e4a.GDPP][li] && sol_array[r][3] <= gl_sol[e4a.INEQ][li] && sol_array[r][4] <= gl_sol[e4a.OW][li] && sol_array[r][6] <= gl_sol[e4a.STE][li]) # && sol_array[r][5] >= gl_sol[e4a.POP][li])
-            println("          ", r, " is a dominator of GL")
-            write(df, string(r) * "\n")
-        end
-        if (isapprox(sol_array[r][1], gl_sol[e4a.AWBI][li]; atol=abs_tol, rtol=rel_tol) && isapprox(sol_array[r][2], gl_sol[e4a.GDPP][li]; atol=abs_tol, rtol=rel_tol) && isapprox(sol_array[r][3], gl_sol[e4a.INEQ][li]; atol=abs_tol, rtol=rel_tol) && isapprox(sol_array[r][4], gl_sol[e4a.OW][li]; atol=abs_tol, rtol=rel_tol) && isapprox(sol_array[r][6], gl_sol[e4a.STE][li]; atol=abs_tol, rtol=rel_tol)) # && isapprox(sol_array[r][5]; gl_sol[e4a.POP][li]; atol=abs_tol, rtol=rel_tol))
-            println("          ", r, " is approximately the same as GL")
-            write(af, string(r) * "\n")
-        end
-        if (r % 1000 == 0)
-            println("Processed ", r, " sunsets")
-        end
-    end
-    close(df)
-    close(af)
-end
-
-function find_dominators(sol_fn, dom_fn, α_values, np)
-    println("Computing ODE system and giant leap solution")
-    e4a, _, prob = e4a_sys_prob()
-    gl_sol = compute_gl_sol(prob)
-    println("Reading solutions")
-    sol_array = deserialize(sol_fn)
-    println("Looking for dominators")
-    f = open(dom_fn, "w")
-    find_dominators(e4a, gl_sol, sol_array, f, α_values, np)
-    close(f)
-    println("Finished")
-end
-
-function find_dominators(e4a, gl_sol, sol_array, f, α_values, np)
-    α = fill(0, np)
-    find_dominators(length(α_values), α, 0, 0, e4a, gl_sol, sol_array, f, α_values)
-end
-
-function find_dominators(n, α, i, r, e4a, gl_sol, sol_array, f, α_values)
-    if (i == length(α))
-        r = r + 1
-        if (r % 1000 == 0)
-            println(r, " solutions have been analyzed")
-        end
-        li = lastindex(gl_sol.t)
-        if (sol_array[r][1] >= gl_sol[e4a.AWBI][li] && sol_array[r][2] >= gl_sol[e4a.GDPP][li] && sol_array[r][3] <= gl_sol[e4a.INEQ][li] && sol_array[r][4] <= gl_sol[e4a.OW][li] && sol_array[r][6] <= gl_sol[e4a.STE][li]) # && sol_array[r][5] >= gl_sol[e4a.POP][li])
-            p = fill(0.0, length(α))
-            for j in 1:lastindex(p)
-                p[j] = α_values[α[j]]
-            end
-            println(p)
-            write(f, string(p) * "\n")
-        end
-        return r
-    end
-    for a in 1:n
-        α[i+1] = a
-        r = find_dominators(n, α, i + 1, r, e4a, gl_sol, sol_array, f, α_values)
-    end
-    return r
-end
-
-function find_dominator_indices(sol_fn)
-    println("Computing ODE system and giant leap solution")
-    e4a, _, prob = e4a_sys_prob()
-    gl_sol = compute_gl_sol(prob)
-    println("Reading solutions")
-    sol_array = deserialize(sol_fn)
-    println("Looking for dominators")
-    di = []
-    li = lastindex(gl_sol.t)
-    for s in 1:lastindex(sol_array)
-        sol = sol_array[s]
-        if (sol[1] >= gl_sol[e4a.AWBI][li] && sol[2] >= gl_sol[e4a.GDPP][li] && sol[3] <= gl_sol[e4a.INEQ][li] && sol[4] <= gl_sol[e4a.OW][li] && sol[6] <= gl_sol[e4a.STE][li]) # && sol_array[r][5] >= gl_sol[e4a.POP][li])
-            println(s)
-            push!(di, s)
-        end
-    end
-    println("Finished")
-    return di
-end
-
-function plot_two_sols(scen1, sol1, scen2, sol2, vars)
-    x = range(1, 7681, length=7681)
-    traces = GenericTrace[]
-    for v in 1:lastindex(vars)
-        desc = getdescription(vars[v])
-        trace1 = PlotlyJS.scatter(x=x, y=sol1[vars[v]], name=desc * "-" * scen1, line=attr(color="royalblue", dash="dash"))
-        trace2 = PlotlyJS.scatter(x=x, y=sol2[vars[v]], name=desc * "-" * scen2, line=attr(color="firebrick", dash="dot"))
-        push!(traces, trace1)
-        push!(traces, trace2)
-    end
-    return PlotlyJS.plot(traces, Layout(title="GL versus dominator"))
 end
 
 function plot_variables(solution, xrange, variables::Vector{<:NTuple{4,Any}}; title="", showaxis=true, showlegend=true, linetype="lines", colored=true, save=false)
@@ -495,6 +188,11 @@ function plot_variables(solution, xrange, variables::Vector{<:NTuple{4,Any}}; ti
     save && savefig(p, "./" * title * ".svg")
 
     return p
+end
+
+function plot_sol_var(e4a, _sol, var_ind, _title, sa, sl; kwargs...)
+    @variables t
+    return plot_variables(_sol, (t, 1980, 2100), getindex(_variables(e4a), var_ind); title=_title, showaxis=sa, showlegend=sl, kwargs...)
 end
 
 function plot_two_sol_variables(scen1, sol1, scen2, sol2, xrange, variables::Vector{<:NTuple{4,Any}}; title="", showaxis=true, showlegend=true, linetype="lines", colored=true, save=false)
@@ -591,118 +289,32 @@ function plot_two_sol_variables(scen1, sol1, scen2, sol2, xrange, variables::Vec
     return p
 end
 
-function plot_sol_var(e4a, _sol, var_ind, _title, sa, sl; kwargs...)
-    @variables t
-    return plot_variables(_sol, (t, 1980, 2100), getindex(_variables(e4a), var_ind); title=_title, showaxis=sa, showlegend=sl, kwargs...)
-end
-
 function plot_two_sol_var(e4a, _scen1, _sol1, _scen2, _sol2, var_ind, _title, sa, sl; kwargs...)
     @variables t
     return plot_two_sol_variables(_scen1, _sol1, _scen2, _sol2, (t, 1980, 2100), getindex(_variables(e4a), var_ind); title=_title, showaxis=sa, showlegend=sl, kwargs...)
 end
 
-function find_α(index, nα, np)
-    α_values = [0.0, 0.5, 1, 1.5, 2.0]
-    α = fill(0, np)
-    α, _ = find_α(nα, α, 0, index, 0)
-    p = fill(0.0, np)
-    for i in 1:np
-        p[i] = α_values[α[i]]
+function compute_alpha_sol(prob, fixed_p, α, p)
+    tltl_p = default_tltl_pars(prob.p)
+    gl_p = default_gl_pars(prob.p)
+    δ = gl_p - tltl_p
+    for i in 1:lastindex(p)
+        tltl_p[p[i]] = tltl_p[p[i]] + δ[p[i]] * α[i]
     end
-    return p
+    for i in 1:lastindex(fixed_p)
+        tltl_p[fixed_p[i][1]] = fixed_p[i][2]
+    end
+    prob = remake(prob, p=tltl_p)
+    sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    return sol
 end
 
-function find_α(n, α, i, index, r)
-    if (i == length(α))
-        r = r + 1
-        return α, r
-    end
-    β = fill(-1, length(α))
-    for a in 1:n
-        α[i+1] = a
-        β, r = find_α(n, α, i + 1, index, r)
-        if (r == index)
-            break
-        end
-    end
-    return β, r
-end
-
-function find_index(β, nα, np)
-    α = fill(0, np)
-    return find_index(nα, α, 0, β, 0)
-end
-
-function find_index(n, α, i, β, index)
-    if (i == length(α))
-        index = index + 1
-        if (α == β)
-            return index, true
-        else
-            return index, false
-        end
-    end
-    f = false
-    for a in 1:n
-        α[i+1] = a
-        index, f = find_index(n, α, i + 1, β, index)
-        if (f)
-            break
-        end
-    end
-    return index, f
-end
-
-function read_alphas(α_fn)
-    f = open(α_fn, "r")
-    lines = readlines(f)
-    close(f)
-    return lines
-end
-
-function find_dominators_from_files(sol_fn, α_fn, doms_fn)
-    println("Computing ODE system and giant leap solution")
-    e4a, _, prob = e4a_sys_prob()
-    gl_sol = compute_gl_sol(prob)
-    println("Reading solutions")
-    sol_array = deserialize(sol_fn)
-    find_dominators_from_files(e4a, gl_sol, sol_array, α_fn, doms_fn)
-end
-
-function find_dominators_from_files(e4a, gl_sol, sol_array, α_fn, doms_fn)
-    println("Reading α combinations")
-    α_array = read_alphas(α_fn)
-    println("Looking for dominators")
-    li = lastindex(gl_sol.t)
-    vv = [gl_sol[e4a.AWBI][li], gl_sol[e4a.GDPP][li], gl_sol[e4a.INEQ][li], gl_sol[e4a.OW][li], gl_sol[e4a.POP][li], gl_sol[e4a.STE][li]]
-    f = open(doms_fn, "w")
-    for r in 1:lastindex(sol_array)
-        if (sol_array[r][1] >= vv[1] && sol_array[r][2] >= vv[2] && sol_array[r][3] <= vv[3] && sol_array[r][4] <= vv[4] && sol_array[r][6] <= vv[6]) # && sol_array[r][2][5] >= vv[5])
-            println(α_array[r])
-            write(f, α_array[r] * "\n")
-        end
-    end
-    close(f)
-    println("Finished")
-end
-
-function read_vensim_dataset(fn, to_be_removed)
-    f::IOStream = open(fn, "r")
-    ds = Dict{String,Array{Float64}}()
-    for line in eachline(f)
-        split_line::Vector{String} = split(line, "\t")
-        s = replace(split_line[1], "\"" => "")
-        s = replace(s, to_be_removed => "")
-        s = replace(s, " (Year)" => "")
-        s = replace(s, "\$" => "dollar")
-        v::Array{Float64} = Array{Float64}(undef, length(split_line) - 1)
-        for i in 2:lastindex(split_line)
-            v[i-1] = parse(Float64, split_line[i])
-        end
-        ds[lowercase(s)] = v
-    end
-    close(f)
-    return ds
+function compute_gl18_sol(prob)
+    a = fill(1.0, 22)
+    a[1] = 0.0
+    a[12] = 0.0
+    a[15] = 0.0
+    return compute_alpha_sol(prob, [], a, collect(1:22))
 end
 
 function compare(a, b, pepsi)
@@ -728,6 +340,121 @@ function compare(a, b, pepsi)
         end
     end
     return max_re, max_re_a, max_re_b, max_re_i
+end
+
+function retrieve_sobol(fn)
+    return deserialize(fn)
+end
+
+function sobol_bar_plots(res)
+    fp = "plots/sobol/"
+    mkpath(fp)
+    v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
+    a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
+    for i in 1:lastindex(v)
+        p = plot([bar(x=p_name[p_map], y=res.S1[2*i-1, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i-1, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
+        savefig(p, fp * a[i] * "_06.html")
+        savefig(p, fp * a[i] * "_06.png")
+        p = plot([bar(x=p_name[p_map], y=res.S1[2*i, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
+        savefig(p, fp * a[i] * "_12.html")
+        savefig(p, fp * a[i] * "_12.png")
+    end
+end
+
+function tornado_diagram(sys, prob, base_sol, var, delta_t)
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    pars = parameters(sys)
+    np = length(pars)
+    bb = mean(base_sol[var][end-delta_t:end])
+    lb = fill(0.0, np)
+    ub = fill(0.0, np)
+    for p in 1:np
+        δ = gl_p[p] - tltl_p[p]
+        if (δ > 0)
+            a = fill(1.0, np)
+            a[p] = 0.0
+            lb_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+            lb[p] = (mean(lb_sol[var][end-delta_t:end]) - bb) / bb
+            a = fill(1.0, np)
+            if (tltl_p[p] + 2.0 * δ <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+                a[p] = 2.0
+            else
+                a[p] = (0.99999999 - tltl_p[p]) / δ
+            end
+            ub_sol = compute_alpha_sol(prob, [], a, collect(1:np))
+            ub[p] = (mean(ub_sol[var][end-delta_t:end]) - bb) / bb
+        else
+            lb[p] = 0.0
+            ub[p] = 0.0
+        end
+    end
+    td = []
+    db = abs.(ub - lb)
+    ldp = sortperm(db, rev=true)
+    for p in 1:np
+        push!(td, (ldp[p], pars[ldp[p]], round(lb[ldp[p]]; digits=3) * 100, round(ub[ldp[p]]; digits=3) * 100))
+    end
+    return td
+end
+
+function local_sensitivity_gl(e4a, prob, base_sol)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    gl_p = default_gl_pars(prob.p)
+    tltl_p = default_tltl_pars(prob.p)
+    prob = remake(prob, p=tltl_p)
+    # tltl_sol = DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625)
+    perc = []
+    for p in 1:lastindex(gl_p)
+        println("Computing percentages for parameter ", p)
+        δ = gl_p[p] - tltl_p[p]
+        sol = []
+        for α in 1:lastindex(α_values)
+            gl_p = default_gl_pars(prob.p)
+            gl_p[p] = tltl_p[p] + δ * α_values[α]
+            if (gl_p[p] <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
+                prob = remake(prob, p=gl_p)
+                push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+            else
+                gl_p = default_gl_pars(prob.p)
+                if (α > 1 && tltl_p[p] + δ * α_values[α-1] < 1.0)
+                    gl_p[p] = 0.99999999
+                    prob = remake(prob, p=gl_p)
+                    push!(sol, DifferentialEquations.solve(prob, Euler(); dt=0.015625, dtmax=0.015625))
+                end
+            end
+        end
+        perc_p = []
+        for v in [e4a.AWBI, e4a.GDPP, e4a.INEQ, e4a.OW, e4a.POP, e4a.STE]
+            perc_v = []
+            for i in 1:lastindex(sol)
+                li = lastindex(sol[i][v])
+                push!(perc_v, (sol[i][v][li] - base_sol[v][li]) / base_sol[v][li])
+            end
+            push!(perc_p, perc_v)
+        end
+        push!(perc, perc_p)
+    end
+    return perc
+end
+
+function spider_plot(perc, sys, v, pars, tt, sl, acron)
+    par_n = parameters(sys)
+    α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
+    data = GenericTrace[]
+    for p in pars
+        scatter_name = getdescription(par_n[p])
+        if (acron)
+            scatter_name = p_name[p]
+        end
+        push!(data, scatter(; x=α_values, y=perc[p][v], name=scatter_name, mode="lines+markers"))
+    end
+    plot_title = ""
+    if (tt)
+        plot_title = v_name[v]
+    end
+    layout = Layout(; title=plot_title, xaxis=attr(tickmode="array", tickvals=[0.0, 1.0, 2.0], ticktext=["Low=TLTL", "Base=GL", "High"]), yaxis_range=[-0.25, 0.25], yaxis=attr(tickmode="array", tickvals=[-0.2, -0.1, 0.0, 0.1, 0.2], ticktext=["-20%", "-10%", "0%", "10%", "20%"]), showlegend=sl)
+    PlotlyJS.plot(data, layout)
 end
 
 function mre_sys(sol, sys, vs_ds, pepsi, nt, verbose)
@@ -757,127 +484,3 @@ function all_mre(scen, sector, sys, sol)
     println("====MAXIMUM ERROR===" * string(max_re))
 end
 
-# function sobol_bar_plots(e4a, res)
-#     fp = "plots/sobol/"
-#     mkpath(fp)
-#     v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
-#     a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
-#     for i in 1:lastindex(v)
-#         p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i-1, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i-1, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
-#         savefig(p, fp * a[i] * "_06.html")
-#         savefig(p, fp * a[i] * "_06.png")
-#         p = plot([bar(x=getdescription.(parameters(e4a)), y=res.S1[2*i, :], name="Sobol first index"), bar(x=getdescription.(parameters(e4a)), y=res.ST[2*i, :], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
-#         savefig(p, fp * a[i] * "_12.html")
-#         savefig(p, fp * a[i] * "_12.png")
-#     end
-# end
-
-function sobol_bar_plots(res)
-    fp = "plots/sobol/"
-    mkpath(fp)
-    v = ["Average wellbeing index", "GDP per person", "Inequality", "Observed warming", "Population", "Social tension"]
-    a = ["awbi", "gdpp", "ineq", "ow", "pop", "ste"]
-    for i in 1:lastindex(v)
-        p = plot([bar(x=p_name[p_map], y=res.S1[2*i-1, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i-1, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 6 years)"))
-        savefig(p, fp * a[i] * "_06.html")
-        savefig(p, fp * a[i] * "_06.png")
-        p = plot([bar(x=p_name[p_map], y=res.S1[2*i, p_map], name="Sobol first index"), bar(x=p_name[p_map], y=res.ST[2*i, p_map], name="Sobol total index")], Layout(title=v[i] * " (averaged over 12 years)"))
-        savefig(p, fp * a[i] * "_12.html")
-        savefig(p, fp * a[i] * "_12.png")
-    end
-end
-
-# function tornado_diagram(sys, prob, sol, var, delta_t)
-#     pars = parameters(sys)
-#     np = length(pars)
-#     bb = mean(sol[var][end-delta_t:end])
-#     lb = fill(0.0, np)
-#     ub = fill(0.0, np)
-#     for p in 1:np
-#         a = fill(1.0, np)
-#         a[p] = 0.0
-#         lb_sol = compute_alpha_sol(prob, [], a, collect(1:np))
-#         lb[p] = (mean(lb_sol[var][end-delta_t:end]) - bb) / bb
-#         a = fill(1.0, np)
-#         a[p] = 2.0
-#         ub_sol = compute_alpha_sol(prob, [], a, collect(1:np))
-#         ub[p] = (mean(ub_sol[var][end-delta_t:end]) - bb) / bb
-#     end
-#     db = abs.(ub - lb)
-#     ldp = sortperm(db, rev=true)
-#     println(ldp)
-#     println()
-#     for p in 1:np
-#         print("(", round(lb[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
-#     end
-#     println()
-#     println()
-#     for p in 1:np
-#         print("(", round(ub[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
-#     end
-#     println()
-#     println()
-#     for p in np:-1:1
-#         print(pars[ldp[p]], ", ")
-#     end
-#     println()
-#     println()
-#     for p in np:-1:1
-#         print(getdescription(pars[ldp[p]]), ", ")
-#     end
-#     println()
-# end
-
-function tornado_diagram(sys, prob, sol, var, delta_t)
-    gl_p = default_gl_pars(prob.p)
-    tltl_p = default_tltl_pars(prob.p)
-    pars = parameters(sys)
-    np = length(pars)
-    bb = mean(sol[var][end-delta_t:end])
-    lb = fill(0.0, np)
-    ub = fill(0.0, np)
-    for p in 1:np
-        δ = gl_p[p] - tltl_p[p]
-        if (δ > 0)
-            a = fill(1.0, np)
-            a[p] = 0.0
-            lb_sol = compute_alpha_sol(prob, [], a, collect(1:np))
-            lb[p] = (mean(lb_sol[var][end-delta_t:end]) - bb) / bb
-            a = fill(1.0, np)
-            if (tltl_p[p] + 2.0 * δ <= 1.0 || !(p in [4, 10, 11, 13, 14, 16, 17, 21]))
-                a[p] = 2.0
-            else
-                a[p] = (0.99999999 - tltl_p[p]) / δ
-            end
-            ub_sol = compute_alpha_sol(prob, [], a, collect(1:np))
-            ub[p] = (mean(ub_sol[var][end-delta_t:end]) - bb) / bb
-        else
-            lb[p] = 0.0
-            ub[p] = 0.0
-        end
-    end
-    db = abs.(ub - lb)
-    # println(pars[21], ": ", lb[21], " ", ub[21], " ", db[21])
-    ldp = sortperm(db, rev=true)
-    println(ldp)
-    println()
-    for p in 1:np
-        print("(", round(lb[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
-    end
-    println()
-    println()
-    for p in 1:np
-        print("(", round(ub[ldp[p]]; digits=3) * 100, ",", np - p + 1, ") ")
-    end
-    println()
-    println()
-    for p in np:-1:1
-        print(pars[ldp[p]], ", ")
-    end
-    println()
-    println()
-    for p in np:-1:1
-        print(getdescription(pars[ldp[p]]), ", ")
-    end
-    println()
-end
