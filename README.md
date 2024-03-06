@@ -12,14 +12,20 @@ git clone https://github.com/piluc/Earth4AllSA
 
 ### Setting up the environment
 
-After starting the Julia REPL in the repository folder, the environment is instantiated by running
+The necessary Julia packages are listed in the following lines
 ```jl
-using Pkg;
-Pkg.activate(".");
-Pkg.instantiate();
+using ColorTypes
+using ColorSchemes
+using GlobalSensitivity
+using ModelingToolkit
+using DifferentialEquations
+using PlotlyJS
+using Serialization
+using Statistics
+using WorldDynamics
 ```
 
-The sensitivity analysis code, which also loads the `Earth4All` module, is then included by running
+Once all the above packages have been installed, the sensitivity analysis code, which also loads the `Earth4All` module, is then included by running
 ```jl
 include("src/E4ASA.jl");
 ```
