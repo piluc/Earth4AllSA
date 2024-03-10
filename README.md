@@ -98,7 +98,7 @@ All the bar plots included in the paper can then be reproduced by running
 ```jl
 sobol_bar_plots(res);
 ```
-The execution of the above code will create a directory `sobol/plots` containing, for each indicator, two HTML and two PNG files showing the bar plots of the Sobol indices with respect to indicator (averaged over 6 and 12 years, respectively). All plots use the acronym of each parameter, instead of its full name.
+The execution of the above code will create a directory `plots/sobol` containing, for each indicator, two HTML and two PNG files showing the bar plots of the Sobol indices with respect to indicator (averaged over 6 and 12 years, respectively). All plots use the acronym of each parameter, instead of its full name.
 
 ### Executing the local senisitivity analysis
 
