@@ -11,8 +11,7 @@ using Statistics
 using WorldDynamics
 
 global p_name = ["ERDN2OKF2022", "ERDCH4KC2022", "DACCO22100", "FGDC2022", "EETF2022", "EGTRF2022", "EPTF2022", "ETGBW", "GEIC", "FETPO", "GFCO2SCCS", "EROCEPA2022", "GFNE", "GREF", "GCWR", "GFNRM", "GFRA", "EROCFSP", "USPIS2022", "USPUS2022", "GEFR", "MIROTA2022"]
-global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Direct Air Capture of CO2 in 2100 GtCO2/y", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra Transfer of Govmnt Budget to Workers", "Goal for Extra Income from Commons (share of NI)", "Fraction of Extra Taxes Paid by Owners", "Goal for fraction of CO2-sources with CCS", "Extra ROC in energy productivity after 2022 1/y", "Goal for fraction new electrification", "Goal for renewable el fraction", "Goal for Crop Waste Reduction", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Extra ROC in Food Sector Productivity from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)", "Goal for Extra Fertility Reduction", "Max Imported ROTA from 2022 1/y"]
-global p_desc_sorted = ["Direct Air Capture of CO2 in 2100 GtCO2/y", "Extra Empowerment Tax From 2022 (share of NI)", "Extra General Tax Rate From 2022", "Extra Pension Tax From 2022 (share of NI)", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Extra rate of decline in N2O per kg fertilizer from 2022", "Extra ROC in energy productivity after 2022 1/y", "Extra Transfer of Govmnt Budget to Workers", "Fraction of Extra Taxes Paid by Owners", "Fraction of Govmnt Debt Cancelled in 2022 1/y", "Goal for Crop Waste Reduction", "Goal for Extra Fertility Reduction", "Goal for Extra Income from Commons (share of NI)", "Goal for fraction of CO2-sources with CCS", "Goal for fraction new electrification", "Goal for Fraction New Red Meat", "Goal for fraction regenerative agriculture", "Goal for renewable el fraction", "Max Imported ROTA from 2022 1/y", "Unconventional Stimulus in PIS from 2022 (share of GDP)", "Unconventional Stimulus in PUS from 2022 (share of GDP)"]
+global p_desc = ["Extra rate of decline in N2O per kg fertilizer from 2022", "Extra rate of decline in CH4 per kg crop after 2022 1/y", "Direct air capture of CO2 in 2100 GtCO2/y", "Fraction of government debt cancelled in 2022 1/y", "Extra empowerment tax from 2022 (share of NI)", "Extra general tax rate from 2022", "Extra pension tax from 2022 (share of NI)", "Extra transfer of government budget to workers", "Goal for extra income from commons (share of NI)", "Fraction of extra taxes paid by owners", "Goal for fraction of CO2-sources with CCS", "Extra ROC in energy productivity after 2022 1/y", "Goal for fraction new electrification", "Goal for renewable el fraction", "Goal for crop waste reduction", "Goal for fraction new red meat", "Goal for fraction regenerative agriculture", "Extra ROC in food sector productivity from 2022 1/y", "Unconventional stimulus in PIS from 2022 (share of GDP)", "Unconventional stimulus in PUS from 2022 (share of GDP)", "Goal for extra fertility reduction", "Max imported ROTA from 2022 1/y"]
 global p_map = [3, 5, 6, 7, 2, 1, 12, 8, 10, 4, 15, 21, 9, 11, 13, 16, 17, 14, 22, 19, 20]
 global tltl_alpha = fill(0.0, length(p_name))
 global gl_alpha = fill(1.0, length(p_name))
@@ -439,11 +438,10 @@ function local_sensitivity_gl(e4a, prob, base_sol)
 end
 
 function spider_plot(perc, sys, v, pars, tt, sl, acron)
-    par_n = parameters(sys)
     α_values = [0.0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2.0]
     data = GenericTrace[]
     for p in pars
-        scatter_name = getdescription(par_n[p])
+        scatter_name = p_desc[p]
         if (acron)
             scatter_name = p_name[p]
         end
@@ -457,30 +455,35 @@ function spider_plot(perc, sys, v, pars, tt, sl, acron)
     PlotlyJS.plot(data, layout)
 end
 
-function mre_sys(sol, sys, vs_ds, pepsi, nt, verbose)
+function mre_two_sol(sys, sol1, sol2, pepsi, verbose)
     max_re = 0.0
+    max_v = nothing
     for v in states(sys)
         d = getdescription(v)
         if (d != "" && d != "Time instants" && !startswith(d, "LV functions") && !startswith(d, "RT functions"))
-            if (get(vs_ds, lowercase(d), "") != "")
-                re, _, _, _ = Earth4All.compare(sol[v][1:nt], vs_ds[lowercase(d)], pepsi)
+            re, _, _, _ = Earth4All.compare(sol1[v], sol2[v], pepsi)
+            if (re > max_re)
                 max_re = max(max_re, re)
+                max_v = v
                 if (verbose)
                     println(d, "\t", re)
                 end
             end
         end
     end
-    return max_re
+    return max_v, max_re
 end
 
-function all_mre(scen, sector, sys, sol)
-    max_re = 0
-    # sn = ["climate", "demand", "energy", "finance", "foodland", "inventory", "labourmarket", "other", "output", "population", "public", "wellbeing"]
-    println("====" * uppercase(sector) * "====")
-    vs_ds = read_vensim_dataset("vensim/" * lowercase(scen) * "/" * sector * ".txt", " : E4A-220501 " * scen)
-    re = mre_sys(sol, sys, vs_ds, 1, 7681, true)
-    max_re = max(max_re, re)
-    println("====MAXIMUM ERROR===" * string(max_re))
+function plot_two_sols(scen1, sol1, scen2, sol2, vars)
+    x = range(1, 7681, length=7681)
+    traces = GenericTrace[]
+    for v in 1:lastindex(vars)
+        desc = getdescription(vars[v])
+        trace1 = PlotlyJS.scatter(x=x, y=sol1[vars[v]], name=desc * "-" * scen1, line=attr(color="royalblue", dash="dash"))
+        trace2 = PlotlyJS.scatter(x=x, y=sol2[vars[v]], name=desc * "-" * scen2, line=attr(color="firebrick", dash="dot"))
+        push!(traces, trace1)
+        push!(traces, trace2)
+    end
+    return PlotlyJS.plot(traces, Layout(title="GL versus dominator", xaxis=attr(tickmode="array", tickvals=collect(1:320:7681), ticktext=string.(collect(1980:5:2100)))))
 end
 

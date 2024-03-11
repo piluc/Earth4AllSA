@@ -32,5 +32,6 @@ doms/
 html/
 plots/
 oldsrc/
+sobol/plots
 sols/
 vensim/
