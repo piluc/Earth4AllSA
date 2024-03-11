@@ -47,12 +47,12 @@ gl[e4a.POP][end]
 tltl[e4a.STE][end]
 gl[e4a.STE][end]
 ```
-These values are the ones reported in the table of Fig. 1 of the paper. The figure itself can be reproduced by running
+These values are the ones reported in the table of Fig. 2 of the paper. The figure itself can be reproduced by running
 
 ```jl
 plot_two_sol_var(e4a, "TLTL", tltl, "GL", gl, collect(1:6), "", false, true)
 ```
-(actually the result is an interactive version of Fig. 1). One can also plot one scenario only by running, for example,
+(actually the result is an interactive version of Fig. 2). One can also plot one scenario only by running, for example,
 ```jl
 plot_sol_var(e4a, tltl, collect(1:6), "The TLTL scenario", false, true)
 ```
