@@ -74,7 +74,7 @@ compare(gl[e4a.POP], gl18[e4a.POP],1)
 compare(gl[e4a.STE], gl18[e4a.STE],1)
 ```
 
-### Executing the Sobol senisitivity analysis
+### Executing the Sobol sensitivity analysis
 
 To compute the Sobol indices, the corresponding Julia code has to be included by running
 ```jl
@@ -94,7 +94,7 @@ sobol_bar_plots(res);
 ```
 The execution of the above code will create a directory `plots/sobol` containing, for each indicator, two HTML and two PNG files showing the bar plots of the Sobol indices with respect to indicator (averaged over 6 and 12 years, respectively). All plots use the acronym of each parameter, instead of its full name.
 
-### Executing the local senisitivity analysis
+### Executing the local sensitivity analysis
 
 The tornado diagrams included in the paper can be obtained by running
 ```jl
