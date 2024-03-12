@@ -73,6 +73,7 @@ compare(gl[e4a.OW], gl18[e4a.OW],1)
 compare(gl[e4a.POP], gl18[e4a.POP],1)
 compare(gl[e4a.STE], gl18[e4a.STE],1)
 ```
+Each of the above instructions returns the MRE value along with the two values of the two variables that generate this MRE and the corresponding time index in the simulation.
 
 ### Executing the Sobol sensitivity analysis
 
