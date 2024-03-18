@@ -1,5 +1,5 @@
 include("functions.jl")
-@register ramp(x, slope, startx, endx)
+# @register ramp(x, slope, startx, endx)
 
 @variables t
 D = Differential(t)

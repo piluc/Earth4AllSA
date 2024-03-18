@@ -474,7 +474,7 @@ function mre_two_sol(sys, sol1, sol2, pepsi, verbose)
     return max_v, max_re
 end
 
-function plot_two_sols(scen1, sol1, scen2, sol2, vars)
+function plot_two_sols(scen1, sol1, scen2, sol2, vars, plot_title)
     x = range(1, 7681, length=7681)
     traces = GenericTrace[]
     for v in 1:lastindex(vars)
@@ -484,6 +484,6 @@ function plot_two_sols(scen1, sol1, scen2, sol2, vars)
         push!(traces, trace1)
         push!(traces, trace2)
     end
-    return PlotlyJS.plot(traces, Layout(title="GL versus dominator", xaxis=attr(tickmode="array", tickvals=collect(1:320:7681), ticktext=string.(collect(1980:5:2100)))))
+    return PlotlyJS.plot(traces, Layout(title=plot_title, xaxis=attr(tickmode="array", tickvals=collect(1:320:7681), ticktext=string.(collect(1980:5:2100)))))
 end
 
