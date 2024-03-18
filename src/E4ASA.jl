@@ -484,6 +484,6 @@ function plot_two_sols(scen1, sol1, scen2, sol2, vars, plot_title)
         push!(traces, trace1)
         push!(traces, trace2)
     end
-    return PlotlyJS.plot(traces, Layout(title=plot_title, xaxis=attr(tickmode="array", tickvals=collect(1:320:7681), ticktext=string.(collect(1980:5:2100)))))
+    return PlotlyJS.plot(traces, Layout(legend=attr(x=0, y=1,), title=plot_title, xaxis=attr(tickmode="array", tickvals=collect(1:320:7681), ticktext=string.(collect(1980:5:2100)))))
 end
 
