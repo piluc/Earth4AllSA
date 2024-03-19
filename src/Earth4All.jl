@@ -4,7 +4,6 @@ using ModelingToolkit
 using WorldDynamics
 
 include("functions.jl")
-include("solvesystems.jl")
 
 include("tables.jl")
 include("parameters.jl")
