@@ -14,3 +14,5 @@ After starting the Julia REPL, we can launch the Pluto server by running
 import Pluto
 Pluto.run()
 ```
+
+Once the Pluto.jl welcome window has been opened by the browser, in the `Opne a notebook` text field select the file `PlutoE4ASA.jl` included in the repository branch directory. The notebook should be opened: click on the `Run notebook code` to start the notebook (the first time, this can take a couple of minutes). All notebook cells will be executed (ignore some temporary warning messages): you can now play with the notebook.
